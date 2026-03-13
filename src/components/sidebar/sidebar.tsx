@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useChatStore } from "@/stores/chat-store";
 import { useUIStore } from "@/stores/ui-store";
-import { Plus, Trash2, MoreHorizontal, Pencil, X } from "lucide-react";
+import { Plus, Trash2, MoreHorizontal, Pencil, X, Download, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { exportAsMarkdown, exportAllAsZip } from "@/lib/export";
 
 function groupByDate(conversations: { createdAt: string }[]) {
   const now = new Date();
@@ -158,6 +159,15 @@ export function Sidebar() {
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    exportAsMarkdown(conv);
+                                  }}
+                                >
+                                  <FileDown className="mr-2 h-3.5 w-3.5" />
+                                  {t("export")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     deleteConversation(conv.id);
                                   }}
                                   className="text-destructive"
@@ -178,7 +188,18 @@ export function Sidebar() {
         </ScrollArea>
 
         <Separator />
-        <div className="p-2">
+        <div className="p-2 space-y-1">
+          {conversations.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-xs"
+              onClick={() => exportAllAsZip(conversations)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("exportAll")}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

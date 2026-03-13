@@ -103,6 +103,9 @@ export default function Home() {
 
             try {
               const parsed = JSON.parse(data);
+              if (parsed.error) {
+                throw new Error(parsed.message || "Terjadi kesalahan");
+              }
               if (parsed.thinking) {
                 thinkingText += parsed.text ?? "";
                 updateMessage(convId!, botMessageId, {
