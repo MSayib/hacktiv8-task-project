@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "highlight.js/styles/github.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -45,75 +46,81 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Gemini theme colors */
+  --color-gemini-blue: #4285F4;
+  --color-gemini-purple: #7B68EE;
+  --color-gemini-pink: #EA4AAA;
+  --color-gemini-orange: #FBBC04;
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.55 0.18 264);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.97 0.01 264);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  --ring: oklch(0.55 0.18 264);
+  --chart-1: oklch(0.65 0.15 250);
+  --chart-2: oklch(0.55 0.2 290);
+  --chart-3: oklch(0.6 0.2 340);
+  --chart-4: oklch(0.8 0.15 85);
+  --chart-5: oklch(0.7 0.17 264);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(0.975 0.005 264);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.55 0.18 264);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.95 0.01 264);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.55 0.18 264);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.13 0.01 264);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.18 0.01 264);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.18 0.01 264);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.7 0.15 264);
+  --primary-foreground: oklch(0.13 0 0);
+  --secondary: oklch(0.24 0.01 264);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.24 0.01 264);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: oklch(0.24 0.02 264);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
+  --ring: oklch(0.7 0.15 264);
+  --chart-1: oklch(0.65 0.15 250);
+  --chart-2: oklch(0.55 0.2 290);
+  --chart-3: oklch(0.6 0.2 340);
+  --chart-4: oklch(0.8 0.15 85);
+  --chart-5: oklch(0.7 0.17 264);
+  --sidebar: oklch(0.16 0.01 264);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: oklch(0.7 0.15 264);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent: oklch(0.22 0.02 264);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.7 0.15 264);
 }
 
 @layer base {
@@ -126,4 +133,111 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Gemini gradient utilities */
+.gradient-primary {
+  background: linear-gradient(135deg, #4285F4, #7B68EE, #EA4AAA);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, #7B68EE, #EA4AAA, #FBBC04);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #4285F4, #7B68EE, #EA4AAA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Typing indicator animation */
+@keyframes bounce-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+.typing-dot {
+  animation: bounce-dot 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Thinking shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.thinking-shimmer {
+  background: linear-gradient(90deg, #7B68EE, #EA4AAA, #4285F4, #7B68EE);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* Prose styling for chat messages */
+.prose-chat pre {
+  @apply rounded-lg overflow-x-auto my-3;
+}
+
+.prose-chat code:not(pre code) {
+  @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.prose-chat pre code {
+  @apply bg-transparent p-0;
+}
+
+.prose-chat table {
+  @apply w-full border-collapse my-3;
+}
+
+.prose-chat th,
+.prose-chat td {
+  @apply border border-border px-3 py-2 text-left text-sm;
+}
+
+.prose-chat th {
+  @apply bg-muted font-medium;
+}
+
+.prose-chat blockquote {
+  @apply border-l-4 border-primary/30 pl-4 my-3 italic text-muted-foreground;
+}
+
+.prose-chat ul,
+.prose-chat ol {
+  @apply pl-6 my-2;
+}
+
+.prose-chat li {
+  @apply my-1;
+}
+
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3,
+.prose-chat h4 {
+  @apply font-semibold mt-4 mb-2;
+}
+
+.prose-chat h1 { @apply text-xl; }
+.prose-chat h2 { @apply text-lg; }
+.prose-chat h3 { @apply text-base; }
+
+.prose-chat p {
+  @apply my-2 leading-relaxed;
+}
+
+.prose-chat a {
+  @apply text-primary underline underline-offset-2;
+}
+
+.prose-chat img {
+  @apply rounded-lg max-w-full my-3;
+}
+
+.prose-chat hr {
+  @apply border-border my-4;
 }
