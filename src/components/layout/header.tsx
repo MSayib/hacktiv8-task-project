@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
+import { LanguageSwitcher } from "@/components/settings/language-switcher";
 import { useUIStore } from "@/stores/ui-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { getModelById } from "@/lib/models";
@@ -71,6 +72,7 @@ export function Header() {
         </Button>
 
         <ThemeToggle />
+        <LanguageSwitcher />
 
         <Button
           variant="ghost"

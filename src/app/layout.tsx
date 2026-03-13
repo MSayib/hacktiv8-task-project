@@ -17,6 +17,13 @@ export const metadata: Metadata = {
   title: "KodingBuddy — Belajar Coding Jadi Seru!",
   description:
     "AI Chatbot untuk belajar pemrograman dan teknologi. Dibuat oleh Sayib.",
+  manifest: "/manifest.json",
+  themeColor: "#4285F4",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "KodingBuddy",
+  },
 };
 
 export default function RootLayout({
@@ -26,10 +33,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppProviders>{children}</AppProviders>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').catch(() => {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
