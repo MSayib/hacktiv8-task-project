@@ -55,6 +55,8 @@
   },
   "models": {
     "selector": "Pilih Model",
+    "selectModel": "Pilih Model AI",
+    "selectDescription": "Pilih model AI yang sesuai kebutuhan Anda",
     "info": "Info Model",
     "contextWindow": "Context Window",
     "maxOutput": "Max Output",

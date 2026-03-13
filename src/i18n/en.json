@@ -55,6 +55,8 @@
   },
   "models": {
     "selector": "Select Model",
+    "selectModel": "Select AI Model",
+    "selectDescription": "Choose an AI model that fits your needs",
     "info": "Model Info",
     "contextWindow": "Context Window",
     "maxOutput": "Max Output",

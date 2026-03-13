@@ -4,6 +4,9 @@ import { useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/sidebar/sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
+import { ModelSelector } from "@/components/settings/model-selector";
+import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { AboutDialog } from "@/components/layout/about-dialog";
 import { useChatStore } from "@/stores/chat-store";
 import { useSettingsStore } from "@/stores/settings-store";
 
@@ -162,6 +165,9 @@ export default function Home() {
           <ChatInterface onSend={handleSend} />
         </main>
       </div>
+      <ModelSelector />
+      <SettingsDialog />
+      <AboutDialog />
     </div>
   );
 }
