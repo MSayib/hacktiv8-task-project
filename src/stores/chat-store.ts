@@ -19,6 +19,10 @@ interface ChatState {
     messageId: string,
     updates: Partial<Message>
   ) => void;
+  retryMessage: (
+    conversationId: string,
+    userMessageId: string
+  ) => { userMessage: Message; newBotMessageId: string } | null;
   deleteAllConversations: () => void;
   setIsStreaming: (value: boolean) => void;
   getActiveConversation: () => Conversation | undefined;
@@ -104,6 +108,81 @@ export const useChatStore = create<ChatState>()(
 
       deleteAllConversations: () =>
         set({ conversations: [], activeConversationId: null }),
+
+      retryMessage: (conversationId, userMessageId) => {
+        const state = get();
+        const conv = state.conversations.find((c) => c.id === conversationId);
+        if (!conv) return null;
+
+        const userIdx = conv.messages.findIndex((m) => m.id === userMessageId);
+        if (userIdx === -1) return null;
+
+        const userMessage = conv.messages[userIdx];
+        const modelIdx = userIdx + 1;
+        const modelMessage = modelIdx < conv.messages.length ? conv.messages[modelIdx] : null;
+
+        const newBotMessageId = crypto.randomUUID();
+
+        if (modelMessage && modelMessage.role === "model") {
+          // Move the existing model response into variants, replace with new placeholder
+          const existingVariants = modelMessage.variants ?? [];
+          const oldVariant: Message = {
+            ...modelMessage,
+            variants: undefined,
+            isStreaming: false,
+          };
+
+          const newBotMessage: Message = {
+            id: newBotMessageId,
+            role: "model",
+            content: "",
+            isStreaming: true,
+            variants: [...existingVariants, oldVariant],
+            createdAt: new Date().toISOString(),
+          };
+
+          set((s) => ({
+            conversations: s.conversations.map((c) =>
+              c.id === conversationId
+                ? {
+                    ...c,
+                    messages: c.messages.map((m, i) =>
+                      i === modelIdx ? newBotMessage : m
+                    ),
+                    updatedAt: new Date().toISOString(),
+                  }
+                : c
+            ),
+          }));
+        } else {
+          // No model message exists yet, add new placeholder
+          const newBotMessage: Message = {
+            id: newBotMessageId,
+            role: "model",
+            content: "",
+            isStreaming: true,
+            createdAt: new Date().toISOString(),
+          };
+
+          set((s) => ({
+            conversations: s.conversations.map((c) =>
+              c.id === conversationId
+                ? {
+                    ...c,
+                    messages: [
+                      ...c.messages.slice(0, modelIdx),
+                      newBotMessage,
+                      ...c.messages.slice(modelIdx),
+                    ],
+                    updatedAt: new Date().toISOString(),
+                  }
+                : c
+            ),
+          }));
+        }
+
+        return { userMessage, newBotMessageId };
+      },
 
       setIsStreaming: (value) => set({ isStreaming: value }),
 

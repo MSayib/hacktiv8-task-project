@@ -14,6 +14,7 @@ export interface Message {
   searchSources?: SearchSource[];
   liked?: boolean | null;
   attachments?: Attachment[];
+  variants?: Message[];
   createdAt: string;
 }
 

@@ -16,10 +16,16 @@ export default function Home() {
   const activeId = useChatStore((s) => s.activeConversationId);
   const addMessage = useChatStore((s) => s.addMessage);
   const updateMessage = useChatStore((s) => s.updateMessage);
+  const retryMessage = useChatStore((s) => s.retryMessage);
   const setIsStreaming = useChatStore((s) => s.setIsStreaming);
   const modelId = useSettingsStore((s) => s.modelId);
   const parameters = useSettingsStore((s) => s.parameters);
   const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
+
+  // Always show welcome screen on initial page load
+  useEffect(() => {
+    useChatStore.getState().setActiveConversation(null);
+  }, []);
 
   // Dynamic browser title
   useEffect(() => {
@@ -29,32 +35,9 @@ export default function Home() {
       : "KodingBuddy — Belajar Coding Jadi Seru!";
   }, [activeId]);
 
-  const handleSend = useCallback(
-    async (content: string, attachments?: Attachment[]) => {
-      let convId = activeId;
-      if (!convId) {
-        convId = createConversation(modelId);
-      }
-
-      const userMessage = {
-        id: crypto.randomUUID(),
-        role: "user" as const,
-        content,
-        attachments,
-        createdAt: new Date().toISOString(),
-      };
-      addMessage(convId, userMessage);
-      setIsStreaming(true);
-
-      const botMessageId = crypto.randomUUID();
-      addMessage(convId, {
-        id: botMessageId,
-        role: "model",
-        content: "",
-        isStreaming: true,
-        createdAt: new Date().toISOString(),
-      });
-
+  // Shared streaming logic
+  const streamResponse = useCallback(
+    async (convId: string, botMessageId: string) => {
       try {
         const conversation = useChatStore
           .getState()
@@ -127,17 +110,17 @@ export default function Home() {
                 throw new Error(parsed.message || "Terjadi kesalahan");
               }
               if (parsed.searching !== undefined) {
-                updateMessage(convId!, botMessageId, {
+                updateMessage(convId, botMessageId, {
                   isSearching: parsed.searching,
                 });
               } else if (parsed.searchSources) {
                 searchSources = parsed.searchSources;
-                updateMessage(convId!, botMessageId, {
+                updateMessage(convId, botMessageId, {
                   searchSources: parsed.searchSources,
                 });
               } else if (parsed.thinking) {
                 thinkingText += parsed.text ?? "";
-                updateMessage(convId!, botMessageId, {
+                updateMessage(convId, botMessageId, {
                   thinking: thinkingText,
                   isThinking: true,
                   isSearching: false,
@@ -145,13 +128,13 @@ export default function Home() {
               } else {
                 if (isStillThinking) {
                   isStillThinking = false;
-                  updateMessage(convId!, botMessageId, {
+                  updateMessage(convId, botMessageId, {
                     isThinking: false,
                     isSearching: false,
                   });
                 }
                 accumulated += parsed.text ?? "";
-                updateMessage(convId!, botMessageId, {
+                updateMessage(convId, botMessageId, {
                   content: accumulated,
                 });
               }
@@ -161,7 +144,7 @@ export default function Home() {
           }
         }
 
-        updateMessage(convId!, botMessageId, {
+        updateMessage(convId, botMessageId, {
           isStreaming: false,
           isThinking: false,
           isSearching: false,
@@ -170,7 +153,7 @@ export default function Home() {
           searchSources: searchSources.length > 0 ? searchSources : undefined,
         });
       } catch (error) {
-        updateMessage(convId!, botMessageId, {
+        updateMessage(convId, botMessageId, {
           isStreaming: false,
           isThinking: false,
           content:
@@ -182,16 +165,58 @@ export default function Home() {
         setIsStreaming(false);
       }
     },
+    [updateMessage, setIsStreaming, modelId, parameters, apiKeyOverride]
+  );
+
+  const handleSend = useCallback(
+    async (content: string, attachments?: Attachment[]) => {
+      let convId = activeId;
+      if (!convId) {
+        convId = createConversation(modelId);
+      }
+
+      const userMessage = {
+        id: crypto.randomUUID(),
+        role: "user" as const,
+        content,
+        attachments,
+        createdAt: new Date().toISOString(),
+      };
+      addMessage(convId, userMessage);
+      setIsStreaming(true);
+
+      const botMessageId = crypto.randomUUID();
+      addMessage(convId, {
+        id: botMessageId,
+        role: "model",
+        content: "",
+        isStreaming: true,
+        createdAt: new Date().toISOString(),
+      });
+
+      await streamResponse(convId, botMessageId);
+    },
     [
       activeId,
       createConversation,
       addMessage,
-      updateMessage,
       setIsStreaming,
       modelId,
-      parameters,
-      apiKeyOverride,
+      streamResponse,
     ]
+  );
+
+  const handleRetry = useCallback(
+    async (userMessageId: string) => {
+      if (!activeId) return;
+
+      const result = retryMessage(activeId, userMessageId);
+      if (!result) return;
+
+      setIsStreaming(true);
+      await streamResponse(activeId, result.newBotMessageId);
+    },
+    [activeId, retryMessage, setIsStreaming, streamResponse]
   );
 
   return (
@@ -200,7 +225,7 @@ export default function Home() {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-hidden">
-          <ChatInterface onSend={handleSend} />
+          <ChatInterface onSend={handleSend} onRetry={handleRetry} />
         </main>
       </div>
       <ModelSelector />

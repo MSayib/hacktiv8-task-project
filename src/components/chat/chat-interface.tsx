@@ -15,9 +15,10 @@ import { WelcomeScreen } from "./welcome-screen";
 
 interface ChatInterfaceProps {
   onSend: (message: string, attachments?: Attachment[]) => void;
+  onRetry?: (userMessageId: string) => void;
 }
 
-export function ChatInterface({ onSend }: ChatInterfaceProps) {
+export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
   const activeConversation = useChatStore((s) => s.getActiveConversation());
   const isStreaming = useChatStore((s) => s.isStreaming);
   const modelId = useSettingsStore((s) => s.modelId);
@@ -65,8 +66,17 @@ export function ChatInterface({ onSend }: ChatInterfaceProps) {
           className="flex-1 overflow-y-auto"
         >
           <div className="mx-auto max-w-3xl px-4 py-6">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
+            {messages.map((msg, idx) => (
+              <MessageBubble
+                key={msg.id}
+                message={msg}
+                onRetry={onRetry}
+                siblingModelMessage={
+                  msg.role === "user" && idx + 1 < messages.length && messages[idx + 1].role === "model"
+                    ? messages[idx + 1]
+                    : undefined
+                }
+              />
             ))}
             {showTyping && <TypingIndicator />}
             {showSearching && <SearchIndicator />}

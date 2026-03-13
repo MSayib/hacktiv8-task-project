@@ -4,20 +4,42 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Message, Attachment } from "@/types/chat";
 import { formatFileSize } from "@/lib/attachments";
+import { useStreamingText } from "@/hooks/use-streaming-text";
 import { MarkdownRenderer } from "@/components/shared/markdown-renderer";
 import { MessageActions } from "./message-actions";
 import { ImageLightbox } from "./image-lightbox";
 import { PdfPreviewDialog } from "./pdf-preview-dialog";
 import { SearchSources } from "./search-sources";
-import { User, Sparkles, FileText, Music } from "lucide-react";
+import { User, Sparkles, FileText, Music, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MessageBubbleProps {
   message: Message;
-  onRetry?: () => void;
+  onRetry?: (messageId: string) => void;
+  siblingModelMessage?: Message;
 }
 
-export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
+export function MessageBubble({ message, onRetry, siblingModelMessage }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const isModel = message.role === "model";
+
+  // Streaming text effect for model messages
+  const displayedContent = useStreamingText(
+    message.content,
+    isModel && !!message.isStreaming
+  );
+
+  // Variant pagination for model messages
+  const allVariants = message.variants && message.variants.length > 0
+    ? [...message.variants, message]
+    : null;
+  const [activeVariantIndex, setActiveVariantIndex] = useState<number>(
+    allVariants ? allVariants.length - 1 : 0
+  );
+  const activeMessage = allVariants ? allVariants[activeVariantIndex] : message;
+
+  // For user messages: detect if sibling model response has an error
+  const hasError = isUser && siblingModelMessage?.content?.startsWith("Error:");
 
   return (
     <div
@@ -47,13 +69,13 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
           isUser ? "items-end" : "items-start"
         )}
       >
-        {message.thinking && (
+        {activeMessage.thinking && (
           <details className="mb-2 w-full">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
               Thinking...
             </summary>
             <div className="mt-1 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              <MarkdownRenderer content={message.thinking} />
+              <MarkdownRenderer content={activeMessage.thinking} />
             </div>
           </details>
         )}
@@ -73,7 +95,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
         )}
 
         {/* Text content */}
-        {message.content && (
+        {(isUser ? message.content : (activeMessage === message ? displayedContent : activeMessage.content)) && (
           <div
             className={cn(
               "rounded-2xl px-4 py-3",
@@ -83,18 +105,69 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
             {isUser ? (
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
             ) : (
-              <MarkdownRenderer content={message.content} />
+              <MarkdownRenderer
+                content={activeMessage === message ? displayedContent : activeMessage.content}
+              />
             )}
           </div>
         )}
 
         {/* Search sources */}
-        {!isUser && message.searchSources && message.searchSources.length > 0 && (
-          <SearchSources sources={message.searchSources} />
+        {!isUser && activeMessage.searchSources && activeMessage.searchSources.length > 0 && (
+          <SearchSources sources={activeMessage.searchSources} />
         )}
 
-        {!isUser && !message.isStreaming && (
-          <MessageActions message={message} onRetry={onRetry} />
+        {/* Variant pagination for model messages */}
+        {!isUser && allVariants && allVariants.length > 1 && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setActiveVariantIndex((i) => Math.max(0, i - 1))}
+              disabled={activeVariantIndex === 0}
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </Button>
+            <span className="font-mono text-[11px]">
+              {activeVariantIndex + 1}/{allVariants.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setActiveVariantIndex((i) => Math.min(allVariants.length - 1, i + 1))}
+              disabled={activeVariantIndex === allVariants.length - 1}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+
+        {/* Message actions for model messages */}
+        {!isUser && !activeMessage.isStreaming && (
+          <MessageActions message={activeMessage} onRetry={onRetry ? () => onRetry(message.id) : undefined} />
+        )}
+
+        {/* Retry/resend button on user messages */}
+        {isUser && !siblingModelMessage?.isStreaming && onRetry && (
+          <div className={cn(
+            "flex items-center gap-1 mt-1",
+            hasError ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
+          )}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-7 gap-1.5 text-xs",
+                hasError && "text-destructive hover:text-destructive"
+              )}
+              onClick={() => onRetry(message.id)}
+            >
+              <RefreshCw className="h-3 w-3" />
+              {hasError ? "Resend" : "Retry"}
+            </Button>
+          </div>
         )}
       </div>
     </div>
