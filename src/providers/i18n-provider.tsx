@@ -26,7 +26,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const activeLocale = mounted ? locale : "id";
 
   return (
-    <IntlProvider locale={activeLocale} messages={getMessages(activeLocale)}>
+    <IntlProvider
+      locale={activeLocale}
+      messages={getMessages(activeLocale)}
+      timeZone="Asia/Jakarta"
+    >
       {children}
     </IntlProvider>
   );

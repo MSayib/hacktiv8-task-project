@@ -27,7 +27,7 @@ export function Header() {
   const model = getModelById(modelId);
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border px-3 bg-background/80 backdrop-blur-sm">
+    <header className="relative flex h-14 items-center justify-between border-b border-border px-4 bg-background/80 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -54,6 +54,10 @@ export function Header() {
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
       </div>
+
+      <h1 className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold tracking-tight gradient-text hidden sm:block">
+        Koding Buddy
+      </h1>
 
       <div className="flex items-center gap-1">
         {apiKeyOverride.enabled && (

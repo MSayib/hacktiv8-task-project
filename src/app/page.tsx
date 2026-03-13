@@ -9,6 +9,7 @@ import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { AboutDialog } from "@/components/layout/about-dialog";
 import { useChatStore } from "@/stores/chat-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import type { Attachment } from "@/types/chat";
 
 export default function Home() {
   const createConversation = useChatStore((s) => s.createConversation);
@@ -29,7 +30,7 @@ export default function Home() {
   }, [activeId]);
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, attachments?: Attachment[]) => {
       let convId = activeId;
       if (!convId) {
         convId = createConversation(modelId);
@@ -39,6 +40,7 @@ export default function Home() {
         id: crypto.randomUUID(),
         role: "user" as const,
         content,
+        attachments,
         createdAt: new Date().toISOString(),
       };
       addMessage(convId, userMessage);
@@ -50,7 +52,6 @@ export default function Home() {
         role: "model",
         content: "",
         isStreaming: true,
-        isThinking: true,
         createdAt: new Date().toISOString(),
       });
 
@@ -60,7 +61,17 @@ export default function Home() {
           .conversations.find((c) => c.id === convId);
         const messages = conversation?.messages
           .filter((m) => !m.isStreaming)
-          .map((m) => ({ role: m.role, content: m.content })) ?? [];
+          .map((m) => ({
+            role: m.role,
+            content: m.content,
+            ...(m.attachments?.length && {
+              attachments: m.attachments.map((a) => ({
+                name: a.name,
+                mimeType: a.mimeType,
+                data: a.data,
+              })),
+            }),
+          })) ?? [];
 
         const body: Record<string, unknown> = {
           messages,
@@ -96,6 +107,7 @@ export default function Home() {
         let accumulated = "";
         let thinkingText = "";
         let isStillThinking = true;
+        let searchSources: { title: string; url: string }[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -114,16 +126,29 @@ export default function Home() {
               if (parsed.error) {
                 throw new Error(parsed.message || "Terjadi kesalahan");
               }
-              if (parsed.thinking) {
+              if (parsed.searching !== undefined) {
+                updateMessage(convId!, botMessageId, {
+                  isSearching: parsed.searching,
+                });
+              } else if (parsed.searchSources) {
+                searchSources = parsed.searchSources;
+                updateMessage(convId!, botMessageId, {
+                  searchSources: parsed.searchSources,
+                });
+              } else if (parsed.thinking) {
                 thinkingText += parsed.text ?? "";
                 updateMessage(convId!, botMessageId, {
                   thinking: thinkingText,
                   isThinking: true,
+                  isSearching: false,
                 });
               } else {
                 if (isStillThinking) {
                   isStillThinking = false;
-                  updateMessage(convId!, botMessageId, { isThinking: false });
+                  updateMessage(convId!, botMessageId, {
+                    isThinking: false,
+                    isSearching: false,
+                  });
                 }
                 accumulated += parsed.text ?? "";
                 updateMessage(convId!, botMessageId, {
@@ -139,8 +164,10 @@ export default function Home() {
         updateMessage(convId!, botMessageId, {
           isStreaming: false,
           isThinking: false,
+          isSearching: false,
           content: accumulated,
           thinking: thinkingText || undefined,
+          searchSources: searchSources.length > 0 ? searchSources : undefined,
         });
       } catch (error) {
         updateMessage(convId!, botMessageId, {

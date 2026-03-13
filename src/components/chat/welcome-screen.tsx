@@ -42,7 +42,7 @@ export function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
         {suggestions.map((suggestion, i) => (
           <button
             key={i}
-            className="flex items-start gap-3 rounded-xl border border-border p-3 text-left text-sm transition-all hover:bg-accent/50 hover:border-primary/20"
+            className="flex items-start gap-3 rounded-xl border border-border p-4 text-left text-sm transition-all hover:bg-accent/50 hover:border-primary/20"
             onClick={() => onSuggestionClick(suggestion)}
           >
             <div className="mt-0.5 shrink-0">{SUGGESTION_ICONS[i]}</div>

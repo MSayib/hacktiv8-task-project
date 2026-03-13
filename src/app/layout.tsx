@@ -1,24 +1,16 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import { AppProviders } from "@/providers/app-providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+export const viewport: Viewport = {
+  themeColor: "#4285F4",
+};
 
 export const metadata: Metadata = {
   title: "KodingBuddy — Belajar Coding Jadi Seru!",
   description:
     "AI Chatbot untuk belajar pemrograman dan teknologi. Dibuat oleh Sayib.",
   manifest: "/manifest.json",
-  themeColor: "#4285F4",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -37,9 +29,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <AppProviders>{children}</AppProviders>
         <script
           dangerouslySetInnerHTML={{

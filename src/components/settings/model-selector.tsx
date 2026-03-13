@@ -98,16 +98,24 @@ function ModelCard({
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              className="p-1 rounded-md hover:bg-muted text-muted-foreground"
+            <span
+              role="button"
+              tabIndex={0}
+              className="p-1 rounded-md hover:bg-muted text-muted-foreground cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleInfo();
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  onToggleInfo();
+                }
+              }}
               title={t("models.info")}
             >
               <Info className="h-3.5 w-3.5" />
-            </button>
+            </span>
             {isSelected && <Check className="h-4 w-4 text-primary" />}
           </div>
         </div>

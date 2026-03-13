@@ -79,8 +79,8 @@ export const useChatStore = create<ChatState>()(
                   updatedAt: new Date().toISOString(),
                   title:
                     c.messages.length === 0 && message.role === "user"
-                      ? message.content.slice(0, 50) +
-                        (message.content.length > 50 ? "..." : "")
+                      ? (message.content || message.attachments?.[0]?.name || "Attachment").slice(0, 50) +
+                        ((message.content || message.attachments?.[0]?.name || "Attachment").length > 50 ? "..." : "")
                       : c.title,
                 }
               : c
@@ -117,7 +117,18 @@ export const useChatStore = create<ChatState>()(
     {
       name: "kodingbuddy-chat",
       partialize: (state) => ({
-        conversations: state.conversations,
+        conversations: state.conversations.map((c) => ({
+          ...c,
+          messages: c.messages.map((m) => ({
+            ...m,
+            attachments: m.attachments?.map((a) => ({
+              ...a,
+              // Keep base64 for images under ~300KB to survive refresh
+              data: a.type === "image" && a.data.length < 300_000 ? a.data : "",
+              previewUrl: undefined,
+            })),
+          })),
+        })),
         activeConversationId: state.activeConversationId,
       }),
     }

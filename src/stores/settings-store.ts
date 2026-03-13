@@ -19,7 +19,6 @@ const DEFAULT_API_KEY_OVERRIDE: ApiKeyOverride = {
 interface SettingsState extends Settings {
   setModelId: (id: string) => void;
   setParameters: (params: Partial<ModelParameters>) => void;
-  setVerboseMode: (value: boolean) => void;
   setApiKeyOverride: (override: Partial<ApiKeyOverride>) => void;
   setLocale: (locale: "id" | "en") => void;
   resetParameters: () => void;
@@ -30,7 +29,6 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       modelId: DEFAULT_MODEL_ID,
       parameters: DEFAULT_PARAMETERS,
-      verboseMode: false,
       apiKeyOverride: DEFAULT_API_KEY_OVERRIDE,
       locale: "id",
 
@@ -40,8 +38,6 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({
           parameters: { ...state.parameters, ...params },
         })),
-
-      setVerboseMode: (value) => set({ verboseMode: value }),
 
       setApiKeyOverride: (override) =>
         set((state) => ({
@@ -57,7 +53,6 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         modelId: state.modelId,
         parameters: state.parameters,
-        verboseMode: state.verboseMode,
         locale: state.locale,
         // Note: apiKeyOverride NOT persisted for security (re-enter each session)
       }),

@@ -1,3 +1,8 @@
+export interface SearchSource {
+  title: string;
+  url: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "model";
@@ -5,6 +10,8 @@ export interface Message {
   thinking?: string;
   isStreaming?: boolean;
   isThinking?: boolean;
+  isSearching?: boolean;
+  searchSources?: SearchSource[];
   liked?: boolean | null;
   attachments?: Attachment[];
   createdAt: string;

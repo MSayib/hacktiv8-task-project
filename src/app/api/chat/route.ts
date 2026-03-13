@@ -1,8 +1,18 @@
 import { createGoogleClient, getApiKey } from "@/lib/ai-providers";
 import { SYSTEM_INSTRUCTION, AVAILABLE_MODELS } from "@/lib/constants";
 
+interface ChatAttachment {
+  name: string;
+  mimeType: string;
+  data: string;
+}
+
 interface ChatRequestBody {
-  messages: { role: "user" | "model"; content: string }[];
+  messages: {
+    role: "user" | "model";
+    content: string;
+    attachments?: ChatAttachment[];
+  }[];
   model?: string;
   temperature?: number;
   topK?: number;
@@ -50,8 +60,10 @@ export async function POST(request: Request) {
     const ai = createGoogleClient(apiKey);
 
     const supportsThinking = modelDef.features.includes("thinking") || modelDef.features.includes("deep_think");
+    const supportsSearch = modelDef.features.includes("search");
 
-    const config: Record<string, unknown> = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const config: Record<string, any> = {
       systemInstruction: SYSTEM_INSTRUCTION,
     };
 
@@ -63,10 +75,34 @@ export async function POST(request: Request) {
       config.thinkingConfig = { thinkingBudget: 8192 };
     }
 
-    const contents = messages.map((m) => ({
-      role: m.role,
-      parts: [{ text: m.content }],
-    }));
+    if (supportsSearch) {
+      config.tools = [{ googleSearch: {} }];
+    }
+
+    const contents = messages.map((m) => {
+      const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [];
+
+      if (m.content) {
+        parts.push({ text: m.content });
+      }
+
+      if (m.attachments) {
+        for (const att of m.attachments) {
+          parts.push({
+            inlineData: {
+              mimeType: att.mimeType,
+              data: att.data,
+            },
+          });
+        }
+      }
+
+      if (parts.length === 0) {
+        parts.push({ text: "" });
+      }
+
+      return { role: m.role, parts };
+    });
 
     const response = await ai.models.generateContentStream({
       model: modelId,
@@ -78,9 +114,30 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Signal that search is active for search-capable models
+          if (supportsSearch) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ searching: true })}\n\n`
+              )
+            );
+          }
+
+          let searchSignalSent = false;
+
           for await (const chunk of response) {
             if (chunk.candidates?.[0]?.content?.parts) {
               for (const part of chunk.candidates[0].content.parts) {
+                // Once we get actual content, search phase is over
+                if (!searchSignalSent && supportsSearch) {
+                  searchSignalSent = true;
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ searching: false })}\n\n`
+                    )
+                  );
+                }
+
                 if (part.thought) {
                   controller.enqueue(
                     encoder.encode(
@@ -94,6 +151,29 @@ export async function POST(request: Request) {
                     )
                   );
                 }
+              }
+            }
+
+            // Parse grounding metadata (search sources)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const groundingMetadata = (chunk as any).candidates?.[0]?.groundingMetadata;
+            if (groundingMetadata?.groundingChunks) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const sources = groundingMetadata.groundingChunks
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .filter((gc: any) => gc.web)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((gc: any) => ({
+                  title: gc.web.title || gc.web.uri,
+                  url: gc.web.uri,
+                }));
+
+              if (sources.length > 0) {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ searchSources: sources })}\n\n`
+                  )
+                );
               }
             }
           }

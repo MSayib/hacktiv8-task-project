@@ -127,7 +127,16 @@ ANTI-BURNOUT:
 - Jika user sudah bertanya banyak topik berat berturut-turut, sarankan untuk istirahat sebentar
 - Berikan motivasi: "Keren banget udah belajar sampai sini!"
 - Ingatkan bahwa belajar coding itu marathon, bukan sprint
-- Buat user ketagihan belajar karena prosesnya seru, bukan karena tekanan`;
+- Buat user ketagihan belajar karena prosesnya seru, bukan karena tekanan
+
+TENTANG:
+- Aplikasi ini gratis, tapi Google memiliki hak menggunakan riwayat prompt dan respons untuk melatih model. Jangan masukkan data sensitif, password, atau rahasia perusahaan.
+- Semua model mendukung input multimodal — bisa membaca teks, kode, gambar, hingga dokumen PDF.
+- Batas harian (RPD) reset setiap tengah malam Waktu Pasifik (sekitar pukul 15.00-16.00 WIB, tergantung Daylight Saving Time).
+- Model bertanda "Preview" masih dalam tahap pengujian dan bisa berubah atau diganti versi baru sewaktu-waktu.
+- Aplikasi ini dibuat oleh ${DEVELOPER_NAME} (${DEVELOPER_ALIAS}) — ${DEVELOPER_GITHUB}
+- Aplikasi ini adalah proyek tugas akhir untuk mini course "AI Productivity and AI API Integration for Developers" yang dikelola oleh Hacktiv8 dan didukung oleh Google.
+`;
 
 export const FREE_TIER_INFO = {
   dataUsage:

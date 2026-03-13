@@ -83,7 +83,7 @@ export function Sidebar() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden"
         )}
       >
-        <div className="flex items-center justify-between p-3">
+        <div className="flex items-center justify-between p-4">
           <h2 className="text-sm font-semibold">{t("title")}</h2>
           <Button
             variant="ghost"
@@ -95,7 +95,7 @@ export function Sidebar() {
           </Button>
         </div>
 
-        <div className="px-3 pb-2">
+        <div className="px-4 pb-3">
           <Button
             onClick={() => createConversation()}
             className="w-full justify-start gap-2 gradient-primary text-white"
@@ -127,7 +127,7 @@ export function Sidebar() {
                           <div
                             key={conv.id}
                             className={cn(
-                              "group flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm cursor-pointer hover:bg-sidebar-accent",
+                              "group flex items-center gap-1 rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-sidebar-accent",
                               activeId === conv.id && "bg-sidebar-accent"
                             )}
                             onClick={() => {
@@ -188,7 +188,7 @@ export function Sidebar() {
         </ScrollArea>
 
         <Separator />
-        <div className="p-2 space-y-1">
+        <div className="p-3 space-y-1">
           {conversations.length > 0 && (
             <Button
               variant="ghost"

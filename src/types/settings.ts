@@ -16,7 +16,6 @@ export interface ApiKeyOverride {
 export interface Settings {
   modelId: string;
   parameters: ModelParameters;
-  verboseMode: boolean;
   apiKeyOverride: ApiKeyOverride;
   locale: "id" | "en";
 }

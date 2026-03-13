@@ -75,7 +75,7 @@ function ModelParametersTab() {
             disabled={!parameters.enabled}
           />
           <p className="text-[10px] text-muted-foreground">
-            Kontrol kreativitas. Rendah = fokus, Tinggi = kreatif.
+            {t("temperatureDescription")}
           </p>
         </div>
 
@@ -107,6 +107,9 @@ function ModelParametersTab() {
             }
             disabled={!parameters.enabled}
           />
+          <p className="text-[10px] text-muted-foreground">
+            {t("topKDescription")}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -137,6 +140,9 @@ function ModelParametersTab() {
             }
             disabled={!parameters.enabled}
           />
+          <p className="text-[10px] text-muted-foreground">
+            {t("topPDescription")}
+          </p>
         </div>
       </div>
     </div>
@@ -145,23 +151,9 @@ function ModelParametersTab() {
 
 function AdvancedTab() {
   const t = useTranslations("settings");
-  const verboseMode = useSettingsStore((s) => s.verboseMode);
-  const setVerboseMode = useSettingsStore((s) => s.setVerboseMode);
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <Label>{t("verboseMode")}</Label>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Tampilkan detail request/response di console
-          </p>
-        </div>
-        <Switch checked={verboseMode} onCheckedChange={setVerboseMode} />
-      </div>
-
-      <Separator />
-
       <div className="space-y-2">
         <Label>{t("systemInstruction")}</Label>
         <ScrollArea className="h-48 rounded-md border bg-muted/30 p-3">
