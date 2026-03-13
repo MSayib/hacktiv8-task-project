@@ -6,6 +6,7 @@ import { MessageBubble } from "./message-bubble";
 import { TypingIndicator } from "./typing-indicator";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { ChatInput } from "./chat-input";
+import { WelcomeScreen } from "./welcome-screen";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DEVELOPER_NAME, DEVELOPER_GITHUB } from "@/lib/constants";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -36,17 +37,25 @@ export function ChatInterface({ onSend }: ChatInterfaceProps) {
     }
   }, [messages, isStreaming]);
 
+  const hasMessages = messages.length > 0;
+
   return (
     <div className="flex h-full flex-col">
-      <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="mx-auto max-w-3xl py-4">
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
-          ))}
-          {showTyping && <TypingIndicator />}
-          {showThinking && <ThinkingIndicator />}
+      {hasMessages ? (
+        <ScrollArea className="flex-1" ref={scrollRef}>
+          <div className="mx-auto max-w-3xl py-4">
+            {messages.map((msg) => (
+              <MessageBubble key={msg.id} message={msg} />
+            ))}
+            {showTyping && <TypingIndicator />}
+            {showThinking && <ThinkingIndicator />}
+          </div>
+        </ScrollArea>
+      ) : (
+        <div className="flex-1">
+          <WelcomeScreen onSuggestionClick={onSend} />
         </div>
-      </ScrollArea>
+      )}
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
         <ChatInput onSend={onSend} disabled={isStreaming} />

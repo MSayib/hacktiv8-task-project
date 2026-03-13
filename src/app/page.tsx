@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/sidebar/sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
@@ -19,6 +19,14 @@ export default function Home() {
   const modelId = useSettingsStore((s) => s.modelId);
   const parameters = useSettingsStore((s) => s.parameters);
   const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
+
+  // Dynamic browser title
+  useEffect(() => {
+    const conv = useChatStore.getState().conversations.find((c) => c.id === activeId);
+    document.title = conv
+      ? `${conv.title} — KodingBuddy`
+      : "KodingBuddy — Belajar Coding Jadi Seru!";
+  }, [activeId]);
 
   const handleSend = useCallback(
     async (content: string) => {
