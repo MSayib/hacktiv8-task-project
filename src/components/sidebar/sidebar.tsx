@@ -135,7 +135,7 @@ export function Sidebar() {
                               setSidebarOpen(false);
                             }}
                           >
-                            <span className="flex-1 truncate">
+                            <span className="flex-1 truncate" title={conv.title}>
                               {conv.title}
                             </span>
 

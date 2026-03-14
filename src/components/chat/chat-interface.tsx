@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useEffect, useMemo, useCallback, useState } from "react";
+import { Gauge } from "lucide-react";
 import { useChatStore } from "@/stores/chat-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { AVAILABLE_MODELS, DEVELOPER_NAME, DEVELOPER_GITHUB } from "@/lib/constants";
 import { formatTokenCount } from "@/lib/models";
+import { Badge } from "@/components/ui/badge";
 import type { Attachment } from "@/types/chat";
 import { MessageBubble } from "./message-bubble";
 import { TypingIndicator } from "./typing-indicator";
@@ -12,6 +14,7 @@ import { ThinkingIndicator } from "./thinking-indicator";
 import { SearchIndicator } from "./search-indicator";
 import { ChatInput } from "./chat-input";
 import { FeatureToggles } from "./feature-toggles";
+import { RateLimitModal } from "./rate-limit-modal";
 import { WelcomeScreen } from "./welcome-screen";
 
 interface ChatInterfaceProps {
@@ -29,6 +32,7 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [rateLimitOpen, setRateLimitOpen] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
@@ -121,10 +125,22 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
           searchActive={searchActive}
         />
         <div className="mt-2 flex items-center justify-between px-2 text-[11px] text-muted-foreground">
-          <span>
-            Model: {modelId}
-            {contextWindow && ` | Context: ${formatTokenCount(contextWindow)}`}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {contextWindow && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5 font-normal border-border text-muted-foreground">
+                Context: {formatTokenCount(contextWindow)}
+              </Badge>
+            )}
+            <button onClick={() => setRateLimitOpen(true)}>
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 gap-0.5 font-normal cursor-pointer hover:bg-accent/50 transition-colors border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
+              >
+                <Gauge className="h-3 w-3" />
+                Rate Limit
+              </Badge>
+            </button>
+          </div>
           <span>
             &copy; 2026 KodingBuddy &mdash;{" "}
             <a
@@ -137,6 +153,7 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
             </a>
           </span>
         </div>
+        <RateLimitModal open={rateLimitOpen} onOpenChange={setRateLimitOpen} />
       </div>
     </div>
   );

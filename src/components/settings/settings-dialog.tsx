@@ -325,7 +325,7 @@ function ApiKeyTab() {
                 /* Saved state — show masked key with action buttons */
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 rounded-md border bg-muted/30 px-3 py-2 text-sm font-mono">
+                    <div className="flex-1 min-w-0 rounded-md border bg-muted/30 px-3 py-2 text-sm font-mono break-all overflow-hidden">
                       {showKey ? apiKeyOverride.key : maskKey(apiKeyOverride.key)}
                     </div>
                     <Button
