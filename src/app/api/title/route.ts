@@ -4,19 +4,18 @@ interface TitleRequestBody {
   userMessage: string;
   assistantMessage: string;
   customApiKey?: string;
-  provider?: "google" | "openrouter" | "openai" | "anthropic";
 }
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as TitleRequestBody;
-    const { userMessage, assistantMessage, customApiKey, provider = "google" } = body;
+    const { userMessage, assistantMessage, customApiKey } = body;
 
     if (!userMessage) {
       return Response.json({ error: "userMessage is required" }, { status: 400 });
     }
 
-    const apiKey = getApiKey(provider, customApiKey);
+    const apiKey = getApiKey(customApiKey);
     if (!apiKey) {
       return Response.json(
         { error: "API key not configured" },

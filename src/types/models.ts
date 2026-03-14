@@ -1,5 +1,3 @@
-export type Provider = "google" | "openrouter" | "openai" | "anthropic";
-
 export interface RateLimit {
   rpm: number;
   rpd: number;
@@ -12,7 +10,6 @@ export interface ModelDefinition {
   description: string;
   contextWindow: number;
   maxOutputTokens: number;
-  provider: Provider;
   free: boolean;
   isDefault?: boolean;
   isPreview?: boolean;

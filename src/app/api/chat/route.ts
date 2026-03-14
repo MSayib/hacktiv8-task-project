@@ -18,7 +18,6 @@ interface ChatRequestBody {
   topK?: number;
   topP?: number;
   customApiKey?: string;
-  provider?: "google" | "openrouter" | "openai" | "anthropic";
 }
 
 export async function POST(request: Request) {
@@ -31,7 +30,6 @@ export async function POST(request: Request) {
       topK,
       topP,
       customApiKey,
-      provider = "google",
     } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -42,14 +40,15 @@ export async function POST(request: Request) {
     }
 
     const modelDef = AVAILABLE_MODELS.find((m) => m.id === modelId);
-    if (!modelDef) {
+    // Allow custom models when using a custom API key
+    if (!modelDef && !customApiKey) {
       return Response.json(
         { error: `Model "${modelId}" not found` },
         { status: 400 }
       );
     }
 
-    const apiKey = getApiKey(provider, customApiKey);
+    const apiKey = getApiKey(customApiKey);
     if (!apiKey) {
       return Response.json(
         { error: "API key not configured. Set GEMINI_API_KEY in .env.local" },
@@ -59,8 +58,8 @@ export async function POST(request: Request) {
 
     const ai = createGoogleClient(apiKey);
 
-    const supportsThinking = modelDef.features.includes("thinking") || modelDef.features.includes("deep_think");
-    const supportsSearch = modelDef.features.includes("search");
+    const supportsThinking = modelDef?.features.includes("thinking") || modelDef?.features.includes("deep_think") || false;
+    const supportsSearch = modelDef?.features.includes("search") || false;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: Record<string, any> = {

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Settings, ModelParameters, ApiKeyOverride } from "@/types/settings";
+import type { Settings, ModelParameters, ApiKeyOverride, DiscoveredModel } from "@/types/settings";
 import { DEFAULT_MODEL_ID } from "@/lib/constants";
 
 const DEFAULT_PARAMETERS: ModelParameters = {
@@ -12,8 +12,8 @@ const DEFAULT_PARAMETERS: ModelParameters = {
 
 const DEFAULT_API_KEY_OVERRIDE: ApiKeyOverride = {
   enabled: false,
-  provider: "google",
   key: "",
+  saved: false,
 };
 
 interface SettingsState extends Settings {
@@ -22,6 +22,7 @@ interface SettingsState extends Settings {
   setApiKeyOverride: (override: Partial<ApiKeyOverride>) => void;
   setLocale: (locale: "id" | "en") => void;
   resetParameters: () => void;
+  setCustomModels: (models: DiscoveredModel[]) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -31,6 +32,7 @@ export const useSettingsStore = create<SettingsState>()(
       parameters: DEFAULT_PARAMETERS,
       apiKeyOverride: DEFAULT_API_KEY_OVERRIDE,
       locale: "id",
+      customModels: [],
 
       setModelId: (id) => set({ modelId: id }),
 
@@ -47,6 +49,8 @@ export const useSettingsStore = create<SettingsState>()(
       setLocale: (locale) => set({ locale }),
 
       resetParameters: () => set({ parameters: DEFAULT_PARAMETERS }),
+
+      setCustomModels: (models) => set({ customModels: models }),
     }),
     {
       name: "kodingbuddy-settings",
@@ -54,7 +58,7 @@ export const useSettingsStore = create<SettingsState>()(
         modelId: state.modelId,
         parameters: state.parameters,
         locale: state.locale,
-        // Note: apiKeyOverride NOT persisted for security (re-enter each session)
+        // Note: apiKeyOverride and customModels NOT persisted for security
       }),
     }
   )

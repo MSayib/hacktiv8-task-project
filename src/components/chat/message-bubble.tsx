@@ -17,9 +17,10 @@ interface MessageBubbleProps {
   message: Message;
   onRetry?: (messageId: string) => void;
   siblingModelMessage?: Message;
+  precedingUserMessage?: Message;
 }
 
-export function MessageBubble({ message, onRetry, siblingModelMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, onRetry, siblingModelMessage, precedingUserMessage }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isModel = message.role === "model";
 
@@ -40,6 +41,9 @@ export function MessageBubble({ message, onRetry, siblingModelMessage }: Message
 
   // For user messages: detect if sibling model response has an error
   const hasError = isUser && siblingModelMessage?.content?.startsWith("Error:");
+
+  // For model messages: detect if this message has an error
+  const isModelError = isModel && activeMessage.content?.startsWith("Error:");
 
   return (
     <div
@@ -146,7 +150,11 @@ export function MessageBubble({ message, onRetry, siblingModelMessage }: Message
 
         {/* Message actions for model messages */}
         {!isUser && !activeMessage.isStreaming && (
-          <MessageActions message={activeMessage} onRetry={onRetry ? () => onRetry(message.id) : undefined} />
+          <MessageActions
+            message={activeMessage}
+            isError={isModelError}
+            onRetry={onRetry && precedingUserMessage ? () => onRetry(precedingUserMessage.id) : undefined}
+          />
         )}
 
         {/* Retry/resend button on user messages */}

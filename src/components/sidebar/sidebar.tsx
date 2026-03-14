@@ -212,6 +212,19 @@ export function Sidebar() {
             {t("deleteAll")}
           </Button>
         </div>
+
+        <Separator />
+        <div className="p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold">
+              MS
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">Muhamad Sayib R.</p>
+              <p className="text-[10px] text-muted-foreground">Student</p>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

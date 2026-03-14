@@ -28,7 +28,6 @@ export const ACCEPTED_MIME_TYPES = {
     "audio/flac",
     "audio/m4a",
     "audio/x-m4a",
-    "audio/mp4",
   ],
 } as const;
 
@@ -40,7 +39,7 @@ export const ALL_ACCEPTED_MIME_TYPES = [
 
 export const IMAGE_MIME_TYPES = ACCEPTED_MIME_TYPES.image.join(",");
 export const DOCUMENT_MIME_TYPES = ACCEPTED_MIME_TYPES.document.join(",");
-export const AUDIO_MIME_TYPES = ACCEPTED_MIME_TYPES.audio.join(",");
+export const AUDIO_MIME_TYPES = ".mp3,.mpeg,.wav,.ogg,.webm,.aac,.flac,.m4a";
 
 export const FILE_SIZE_LIMITS = {
   image: 10 * 1024 * 1024,    // 10MB - Gemini inline data limit

@@ -1,5 +1,3 @@
-import type { Provider } from "./models";
-
 export interface ModelParameters {
   temperature: number;
   topK: number;
@@ -9,8 +7,17 @@ export interface ModelParameters {
 
 export interface ApiKeyOverride {
   enabled: boolean;
-  provider: Provider;
   key: string;
+  saved: boolean;
+}
+
+export interface DiscoveredModel {
+  id: string;
+  name: string;
+  description: string;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+  supportedActions: string[];
 }
 
 export interface Settings {
@@ -18,4 +25,5 @@ export interface Settings {
   parameters: ModelParameters;
   apiKeyOverride: ApiKeyOverride;
   locale: "id" | "en";
+  customModels: DiscoveredModel[];
 }

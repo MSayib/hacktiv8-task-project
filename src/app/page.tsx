@@ -68,9 +68,8 @@ export default function Home() {
           body.topP = parameters.topP;
         }
 
-        if (apiKeyOverride.enabled && apiKeyOverride.key) {
+        if (apiKeyOverride.enabled && apiKeyOverride.saved && apiKeyOverride.key) {
           body.customApiKey = apiKeyOverride.key;
-          body.provider = apiKeyOverride.provider;
         }
 
         const res = await fetch("/api/chat", {
@@ -178,9 +177,8 @@ export default function Home() {
           assistantMessage: botContent,
         };
 
-        if (apiKeyOverride.enabled && apiKeyOverride.key) {
+        if (apiKeyOverride.enabled && apiKeyOverride.saved && apiKeyOverride.key) {
           titleBody.customApiKey = apiKeyOverride.key;
-          titleBody.provider = apiKeyOverride.provider;
         }
 
         const res = await fetch("/api/title", {

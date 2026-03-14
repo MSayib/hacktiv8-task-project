@@ -76,6 +76,11 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
                     ? messages[idx + 1]
                     : undefined
                 }
+                precedingUserMessage={
+                  msg.role === "model" && idx - 1 >= 0 && messages[idx - 1].role === "user"
+                    ? messages[idx - 1]
+                    : undefined
+                }
               />
             ))}
             {showTyping && <TypingIndicator />}
@@ -102,7 +107,7 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
             {modelDef && ` | Context: ${formatTokenCount(modelDef.contextWindow)}`}
           </span>
           <span>
-            KodingBuddy — Built with ❤️ by{" "}
+            &copy; 2026 KodingBuddy &mdash;{" "}
             <a
               href={DEVELOPER_GITHUB}
               target="_blank"

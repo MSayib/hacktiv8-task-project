@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 
 interface MessageActionsProps {
   message: Message;
+  isError?: boolean;
   onRetry?: () => void;
 }
 
-export function MessageActions({ message, onRetry }: MessageActionsProps) {
+export function MessageActions({ message, isError, onRetry }: MessageActionsProps) {
   const t = useTranslations("chat");
   const [liked, setLiked] = useState<boolean | null>(message.liked ?? null);
   const [copied, setCopied] = useState(false);
@@ -27,7 +28,25 @@ export function MessageActions({ message, onRetry }: MessageActionsProps) {
   };
 
   return (
-    <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+    <div className={cn(
+      "flex items-center gap-0.5 transition-opacity",
+      isError ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+    )}>
+      {onRetry && (
+        <Button
+          variant={isError ? "outline" : "ghost"}
+          size={isError ? "sm" : "icon"}
+          className={cn(
+            isError ? "h-7 gap-1.5 text-xs text-destructive hover:text-destructive border-destructive/30" : "h-7 w-7"
+          )}
+          title={t("retry")}
+          onClick={onRetry}
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          {isError && "Coba Lagi"}
+        </Button>
+      )}
+
       <Button
         variant="ghost"
         size="icon"
@@ -71,18 +90,6 @@ export function MessageActions({ message, onRetry }: MessageActionsProps) {
           <Copy className="h-3.5 w-3.5" />
         )}
       </Button>
-
-      {onRetry && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          title={t("retry")}
-          onClick={onRetry}
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-        </Button>
-      )}
     </div>
   );
 }

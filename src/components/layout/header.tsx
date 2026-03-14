@@ -60,7 +60,7 @@ export function Header() {
       </h1>
 
       <div className="flex items-center gap-1">
-        {apiKeyOverride.enabled && (
+        {apiKeyOverride.enabled && apiKeyOverride.saved && (
           <Badge variant="outline" className="text-xs mr-1">
             Custom Key
           </Badge>

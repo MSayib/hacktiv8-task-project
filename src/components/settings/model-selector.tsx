@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, Info, Zap, Brain, Star, ImageIcon, Music, FileText, Globe } from "lucide-react";
+import { Check, Info, Zap, Brain, Star, ImageIcon, Music, FileText, Globe, Key } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { AVAILABLE_MODELS, FREE_TIER_INFO } from "@/lib/constants";
 import { formatTokenCount } from "@/lib/models";
 import type { ModelDefinition } from "@/types/models";
+import type { DiscoveredModel } from "@/types/settings";
 
 interface FeatureBadgeConfig {
   icon: React.ReactNode;
@@ -211,14 +212,130 @@ function ModelCard({
   );
 }
 
+function CustomModelCard({
+  model,
+  isSelected,
+  onSelect,
+  onToggleInfo,
+  showInfo,
+}: {
+  model: DiscoveredModel;
+  isSelected: boolean;
+  onSelect: () => void;
+  onToggleInfo: () => void;
+  showInfo: boolean;
+}) {
+  return (
+    <div className="space-y-0">
+      <button
+        className={`w-full rounded-lg border p-3 text-left transition-all hover:bg-accent/50 ${
+          isSelected
+            ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+            : "border-border"
+        }`}
+        onClick={onSelect}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-sm">{model.name}</span>
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 gap-0.5 border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400"
+              >
+                <Key className="h-2.5 w-2.5" />
+                Custom
+              </Badge>
+            </div>
+            {model.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                {model.description}
+              </p>
+            )}
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {model.supportedActions.includes("generateContent") && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 gap-0.5 border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+                >
+                  <Zap className="h-3 w-3" />
+                  Generate
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              role="button"
+              tabIndex={0}
+              className="p-1 rounded-md hover:bg-muted text-muted-foreground cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleInfo();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  onToggleInfo();
+                }
+              }}
+              title="Info"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </span>
+            {isSelected && <Check className="h-4 w-4 text-primary" />}
+          </div>
+        </div>
+      </button>
+
+      {showInfo && (
+        <div className="mx-2 rounded-b-lg border border-t-0 bg-muted/30 p-3 text-xs space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            {model.inputTokenLimit && (
+              <div>
+                <span className="text-muted-foreground">Input Limit</span>
+                <p className="font-medium">
+                  {formatTokenCount(model.inputTokenLimit)} tokens
+                </p>
+              </div>
+            )}
+            {model.outputTokenLimit && (
+              <div>
+                <span className="text-muted-foreground">Output Limit</span>
+                <p className="font-medium">
+                  {formatTokenCount(model.outputTokenLimit)} tokens
+                </p>
+              </div>
+            )}
+          </div>
+          <div>
+            <span className="text-muted-foreground">Model ID</span>
+            <p className="font-medium font-mono text-[11px]">{model.id}</p>
+          </div>
+          {model.supportedActions.length > 0 && (
+            <div>
+              <span className="text-muted-foreground">Capabilities</span>
+              <p className="font-medium">{model.supportedActions.join(", ")}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ModelSelector() {
   const t = useTranslations();
   const open = useUIStore((s) => s.modelSelectorOpen);
   const setOpen = useUIStore((s) => s.setModelSelectorOpen);
   const modelId = useSettingsStore((s) => s.modelId);
   const setModelId = useSettingsStore((s) => s.setModelId);
+  const customModels = useSettingsStore((s) => s.customModels);
+  const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const [showFreeTierInfo, setShowFreeTierInfo] = useState(false);
+
+  const hasCustomModels = apiKeyOverride.enabled && apiKeyOverride.saved && customModels.length > 0;
 
   const handleSelect = (id: string) => {
     setModelId(id);
@@ -235,6 +352,7 @@ export function ModelSelector() {
 
         <ScrollArea className="max-h-[50vh]">
           <div className="space-y-2 pr-3">
+            {/* Built-in models */}
             {AVAILABLE_MODELS.map((model) => (
               <ModelCard
                 key={model.id}
@@ -249,6 +367,33 @@ export function ModelSelector() {
                 showInfo={expandedModel === model.id}
               />
             ))}
+
+            {/* Custom models from user's API key */}
+            {hasCustomModels && (
+              <>
+                <Separator className="my-3" />
+                <div className="flex items-center gap-2 px-1 mb-2">
+                  <Key className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Model dari API Key Anda ({customModels.length})
+                  </span>
+                </div>
+                {customModels.map((model) => (
+                  <CustomModelCard
+                    key={model.id}
+                    model={model}
+                    isSelected={model.id === modelId}
+                    onSelect={() => handleSelect(model.id)}
+                    onToggleInfo={() =>
+                      setExpandedModel(
+                        expandedModel === model.id ? null : model.id
+                      )
+                    }
+                    showInfo={expandedModel === model.id}
+                  />
+                ))}
+              </>
+            )}
           </div>
         </ScrollArea>
 
