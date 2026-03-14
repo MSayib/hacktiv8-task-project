@@ -346,6 +346,7 @@ function AttachmentPreview({
   return (
     <div className="relative shrink-0 group">
       {attachment.type === "image" && attachment.previewUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={attachment.previewUrl}
           alt={attachment.name}

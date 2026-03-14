@@ -179,7 +179,6 @@ export async function POST(request: Request) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const groundingMetadata = (chunk as any).candidates?.[0]?.groundingMetadata;
             if (groundingMetadata?.groundingChunks) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const sources = groundingMetadata.groundingChunks
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 .filter((gc: any) => gc.web)

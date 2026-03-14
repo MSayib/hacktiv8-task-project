@@ -16,24 +16,31 @@ export function useStreamingText(
 ): string {
   const [displayedLength, setDisplayedLength] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevContentRef = useRef("");
+  const prevLengthRef = useRef(0);
 
   useEffect(() => {
-    // If not streaming, show everything immediately
+    // Only animate during streaming
     if (!isStreaming) {
-      setDisplayedLength(fullContent.length);
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
+      prevLengthRef.current = fullContent.length;
       return;
     }
 
-    // Content was reset (new message), reset display
-    if (fullContent.length < prevContentRef.current.length) {
-      setDisplayedLength(0);
+    // Content was reset (new message) — schedule a reset then re-run
+    if (fullContent.length < prevLengthRef.current) {
+      prevLengthRef.current = fullContent.length;
+      timerRef.current = setTimeout(() => setDisplayedLength(0), 0);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      };
     }
-    prevContentRef.current = fullContent;
+    prevLengthRef.current = fullContent.length;
 
     // Already caught up
     if (displayedLength >= fullContent.length) return;
@@ -66,6 +73,11 @@ export function useStreamingText(
       }
     };
   }, [fullContent, isStreaming, displayedLength]);
+
+  // When not streaming, show everything immediately
+  if (!isStreaming) {
+    return fullContent;
+  }
 
   // Return the progressively revealed text
   return fullContent.slice(0, displayedLength);

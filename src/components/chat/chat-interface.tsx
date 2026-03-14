@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useCallback, useState } from "react";
+import { useRef, useEffect, useMemo, useCallback, useState, useSyncExternalStore } from "react";
 import { Gauge } from "lucide-react";
 import { useChatStore } from "@/stores/chat-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -31,12 +31,8 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
   const featureToggles = useSettingsStore((s) => s.featureToggles);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const hydrated = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [rateLimitOpen, setRateLimitOpen] = useState(false);
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
 
   const modelDef = useMemo(
     () => AVAILABLE_MODELS.find((m) => m.id === modelId),
