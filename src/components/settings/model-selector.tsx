@@ -225,6 +225,8 @@ function CustomModelCard({
   onToggleInfo: () => void;
   showInfo: boolean;
 }) {
+  const featureBadges = getFeatureBadges(model.features ?? []);
+
   return (
     <div className="space-y-0">
       <button
@@ -253,7 +255,17 @@ function CustomModelCard({
               </p>
             )}
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {model.supportedActions.includes("generateContent") && (
+              {featureBadges.map((badge) => (
+                <Badge
+                  key={badge.label}
+                  variant="outline"
+                  className={`text-[10px] px-1.5 py-0 gap-0.5 border ${badge.className}`}
+                >
+                  {badge.icon}
+                  {badge.label}
+                </Badge>
+              ))}
+              {featureBadges.length === 0 && (
                 <Badge
                   variant="outline"
                   className="text-[10px] px-1.5 py-0 gap-0.5 border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
@@ -293,7 +305,7 @@ function CustomModelCard({
           <div className="grid grid-cols-2 gap-2">
             {model.inputTokenLimit && (
               <div>
-                <span className="text-muted-foreground">Input Limit</span>
+                <span className="text-muted-foreground">Context Window</span>
                 <p className="font-medium">
                   {formatTokenCount(model.inputTokenLimit)} tokens
                 </p>
@@ -301,23 +313,18 @@ function CustomModelCard({
             )}
             {model.outputTokenLimit && (
               <div>
-                <span className="text-muted-foreground">Output Limit</span>
+                <span className="text-muted-foreground">Max Output</span>
                 <p className="font-medium">
                   {formatTokenCount(model.outputTokenLimit)} tokens
                 </p>
               </div>
             )}
           </div>
+          <Separator />
           <div>
             <span className="text-muted-foreground">Model ID</span>
             <p className="font-medium font-mono text-[11px]">{model.id}</p>
           </div>
-          {model.supportedActions.length > 0 && (
-            <div>
-              <span className="text-muted-foreground">Capabilities</span>
-              <p className="font-medium">{model.supportedActions.join(", ")}</p>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -352,26 +359,9 @@ export function ModelSelector() {
 
         <ScrollArea className="max-h-[50vh]">
           <div className="space-y-2 pr-3">
-            {/* Built-in models */}
-            {AVAILABLE_MODELS.map((model) => (
-              <ModelCard
-                key={model.id}
-                model={model}
-                isSelected={model.id === modelId}
-                onSelect={() => handleSelect(model.id)}
-                onToggleInfo={() =>
-                  setExpandedModel(
-                    expandedModel === model.id ? null : model.id
-                  )
-                }
-                showInfo={expandedModel === model.id}
-              />
-            ))}
-
-            {/* Custom models from user's API key */}
-            {hasCustomModels && (
+            {hasCustomModels ? (
               <>
-                <Separator className="my-3" />
+                {/* Custom models from user's API key — replaces default list */}
                 <div className="flex items-center gap-2 px-1 mb-2">
                   <Key className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -393,37 +383,58 @@ export function ModelSelector() {
                   />
                 ))}
               </>
+            ) : (
+              <>
+                {/* Built-in models (shown when no custom key) */}
+                {AVAILABLE_MODELS.map((model) => (
+                  <ModelCard
+                    key={model.id}
+                    model={model}
+                    isSelected={model.id === modelId}
+                    onSelect={() => handleSelect(model.id)}
+                    onToggleInfo={() =>
+                      setExpandedModel(
+                        expandedModel === model.id ? null : model.id
+                      )
+                    }
+                    showInfo={expandedModel === model.id}
+                  />
+                ))}
+              </>
             )}
           </div>
         </ScrollArea>
 
-        <Separator />
-
-        <div>
-          <button
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setShowFreeTierInfo(!showFreeTierInfo)}
-          >
-            <Info className="h-3.5 w-3.5" />
-            {t("models.freeTierInfo")}
-          </button>
-          {showFreeTierInfo && (
-            <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs space-y-2">
-              <p>
-                <strong>1.</strong> {FREE_TIER_INFO.dataUsage}
-              </p>
-              <p>
-                <strong>2.</strong> {FREE_TIER_INFO.multimodal}
-              </p>
-              <p>
-                <strong>3.</strong> {FREE_TIER_INFO.quotaReset}
-              </p>
-              <p>
-                <strong>4.</strong> {FREE_TIER_INFO.preview}
-              </p>
+        {!hasCustomModels && (
+          <>
+            <Separator />
+            <div>
+              <button
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowFreeTierInfo(!showFreeTierInfo)}
+              >
+                <Info className="h-3.5 w-3.5" />
+                {t("models.freeTierInfo")}
+              </button>
+              {showFreeTierInfo && (
+                <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs space-y-2">
+                  <p>
+                    <strong>1.</strong> {FREE_TIER_INFO.dataUsage}
+                  </p>
+                  <p>
+                    <strong>2.</strong> {FREE_TIER_INFO.multimodal}
+                  </p>
+                  <p>
+                    <strong>3.</strong> {FREE_TIER_INFO.quotaReset}
+                  </p>
+                  <p>
+                    <strong>4.</strong> {FREE_TIER_INFO.preview}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

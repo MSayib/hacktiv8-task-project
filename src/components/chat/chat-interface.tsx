@@ -11,6 +11,7 @@ import { TypingIndicator } from "./typing-indicator";
 import { ThinkingIndicator } from "./thinking-indicator";
 import { SearchIndicator } from "./search-indicator";
 import { ChatInput } from "./chat-input";
+import { FeatureToggles } from "./feature-toggles";
 import { WelcomeScreen } from "./welcome-screen";
 
 interface ChatInterfaceProps {
@@ -22,6 +23,9 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
   const activeConversation = useChatStore((s) => s.getActiveConversation());
   const isStreaming = useChatStore((s) => s.isStreaming);
   const modelId = useSettingsStore((s) => s.modelId);
+  const customModels = useSettingsStore((s) => s.customModels);
+  const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
+  const featureToggles = useSettingsStore((s) => s.featureToggles);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -34,7 +38,20 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
     () => AVAILABLE_MODELS.find((m) => m.id === modelId),
     [modelId]
   );
-  const supportsMultimodal = modelDef?.features.includes("multimodal") ?? false;
+
+  // For custom models, check features from discovered model data
+  const customModel = useMemo(
+    () =>
+      apiKeyOverride.enabled && apiKeyOverride.saved
+        ? customModels.find((m) => m.id === modelId)
+        : null,
+    [apiKeyOverride, customModels, modelId]
+  );
+
+  const currentFeatures = modelDef?.features ?? customModel?.features ?? [];
+  const supportsMultimodal = currentFeatures.includes("multimodal");
+  const searchActive = featureToggles.search && currentFeatures.includes("search");
+  const contextWindow = modelDef?.contextWindow ?? customModel?.inputTokenLimit;
 
   const messages = useMemo(
     () => activeConversation?.messages ?? [],
@@ -96,15 +113,17 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
       )}
 
       <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+        <FeatureToggles />
         <ChatInput
           onSend={onSend}
           disabled={isStreaming}
           supportsMultimodal={supportsMultimodal}
+          searchActive={searchActive}
         />
         <div className="mt-2 flex items-center justify-between px-2 text-[11px] text-muted-foreground">
           <span>
             Model: {modelId}
-            {modelDef && ` | Context: ${formatTokenCount(modelDef.contextWindow)}`}
+            {contextWindow && ` | Context: ${formatTokenCount(contextWindow)}`}
           </span>
           <span>
             &copy; 2026 KodingBuddy &mdash;{" "}

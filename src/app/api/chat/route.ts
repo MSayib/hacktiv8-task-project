@@ -18,6 +18,10 @@ interface ChatRequestBody {
   topK?: number;
   topP?: number;
   customApiKey?: string;
+  features?: {
+    thinking?: boolean;
+    search?: boolean;
+  };
 }
 
 export async function POST(request: Request) {
@@ -30,6 +34,7 @@ export async function POST(request: Request) {
       topK,
       topP,
       customApiKey,
+      features,
     } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -40,10 +45,22 @@ export async function POST(request: Request) {
     }
 
     const modelDef = AVAILABLE_MODELS.find((m) => m.id === modelId);
-    // Allow custom models when using a custom API key
+    // Allow custom models when using a custom API key, but block non-chat models
     if (!modelDef && !customApiKey) {
       return Response.json(
         { error: `Model "${modelId}" not found` },
+        { status: 400 }
+      );
+    }
+
+    // Anti-hijack: block models that are not suitable for text chat
+    const BLOCKED_MODEL_PATTERNS = [
+      /nano/i, /\btts\b/i, /\basr\b/i, /image.*gen/i, /imagen/i,
+      /embedding/i, /\bveo\b/i, /\blive\b/i, /-tuned-/i,
+    ];
+    if (customApiKey && BLOCKED_MODEL_PATTERNS.some((p) => p.test(modelId))) {
+      return Response.json(
+        { error: `Model "${modelId}" tidak didukung untuk chat.` },
         { status: 400 }
       );
     }
@@ -58,8 +75,11 @@ export async function POST(request: Request) {
 
     const ai = createGoogleClient(apiKey);
 
-    const supportsThinking = modelDef?.features.includes("thinking") || modelDef?.features.includes("deep_think") || false;
-    const supportsSearch = modelDef?.features.includes("search") || false;
+    // Determine features: use explicit client toggles if provided, else auto from model definition
+    const supportsThinking = features?.thinking ??
+      (modelDef?.features.includes("thinking") || modelDef?.features.includes("deep_think") || false);
+    const supportsSearch = features?.search ??
+      (modelDef?.features.includes("search") || false);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: Record<string, any> = {

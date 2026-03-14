@@ -18,6 +18,12 @@ export interface DiscoveredModel {
   inputTokenLimit?: number;
   outputTokenLimit?: number;
   supportedActions: string[];
+  features: string[];
+}
+
+export interface FeatureToggles {
+  thinking: boolean;
+  search: boolean;
 }
 
 export interface Settings {
@@ -26,4 +32,5 @@ export interface Settings {
   apiKeyOverride: ApiKeyOverride;
   locale: "id" | "en";
   customModels: DiscoveredModel[];
+  featureToggles: FeatureToggles;
 }

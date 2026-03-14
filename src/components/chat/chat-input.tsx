@@ -31,9 +31,10 @@ interface ChatInputProps {
   onSend: (message: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
   supportsMultimodal?: boolean;
+  searchActive?: boolean;
 }
 
-export function ChatInput({ onSend, disabled, supportsMultimodal }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, supportsMultimodal, searchActive }: ChatInputProps) {
   const t = useTranslations("chat");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -157,6 +158,9 @@ export function ChatInput({ onSend, disabled, supportsMultimodal }: ChatInputPro
     []
   );
 
+  // Conflict: when Google Search is active, audio input is not supported
+  const allowAudio = supportsMultimodal && !searchActive;
+
   if (showRecorder) {
     return (
       <AudioRecorder
@@ -253,31 +257,35 @@ export function ChatInput({ onSend, disabled, supportsMultimodal }: ChatInputPro
                     <ImageIcon className="h-4 w-4 text-muted-foreground" />
                     {t("attachImage")}
                   </button>
-                  <button
-                    className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
-                    onClick={() => {
-                      audioInputRef.current?.click();
-                      setAttachMenuOpen(false);
-                    }}
-                  >
-                    <Music className="h-4 w-4 text-muted-foreground" />
-                    {t("attachAudio")}
-                  </button>
+                  {allowAudio && (
+                    <button
+                      className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
+                      onClick={() => {
+                        audioInputRef.current?.click();
+                        setAttachMenuOpen(false);
+                      }}
+                    >
+                      <Music className="h-4 w-4 text-muted-foreground" />
+                      {t("attachAudio")}
+                    </button>
+                  )}
                 </PopoverContent>
               </Popover>
 
-              {/* Mic recording button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                onClick={() => setShowRecorder(true)}
-                disabled={disabled}
-                title={t("recordAudio")}
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
+              {/* Mic recording button (hidden when search is active) */}
+              {allowAudio && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowRecorder(true)}
+                  disabled={disabled}
+                  title={t("recordAudio")}
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+              )}
             </>
           )}
         </div>

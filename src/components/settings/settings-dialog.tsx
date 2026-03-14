@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Dialog,
@@ -166,7 +166,6 @@ function AdvancedTab() {
 }
 
 function ApiKeyTab() {
-  const t = useTranslations("settings");
   const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
   const setApiKeyOverride = useSettingsStore((s) => s.setApiKeyOverride);
   const setCustomModels = useSettingsStore((s) => s.setCustomModels);
@@ -175,9 +174,6 @@ function ApiKeyTab() {
   const [copied, setCopied] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{ valid: boolean; error?: string; modelCount?: number } | null>(null);
-
-  // Track whether the key was saved before the switch was enabled
-  const wasSavedOnEnable = useRef(false);
 
   const maskKey = (key: string) => {
     if (key.length <= 8) return "••••••••";
@@ -241,11 +237,37 @@ function ApiKeyTab() {
     toast.success("API key dihapus");
   };
 
-  const handleToggleEnabled = (val: boolean) => {
+  const handleToggleEnabled = async (val: boolean) => {
     if (val) {
-      // Turning on — remember current saved state
-      wasSavedOnEnable.current = apiKeyOverride.saved;
       setApiKeyOverride({ enabled: true });
+      // If key was already saved, re-fetch models (like pressing Save again)
+      if (apiKeyOverride.saved && apiKeyOverride.key) {
+        setValidating(true);
+        setValidationResult(null);
+        try {
+          const res = await fetch("/api/validate-key", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ apiKey: apiKeyOverride.key }),
+          });
+          const data = await res.json();
+          if (data.valid) {
+            setCustomModels(data.models ?? []);
+            setValidationResult({ valid: true, modelCount: data.models?.length ?? 0 });
+          } else {
+            // Key became invalid — reset saved state
+            setApiKeyOverride({ saved: false, key: "" });
+            setCustomModels([]);
+            setValidationResult({ valid: false, error: data.error || "API key tidak lagi valid" });
+            toast.error("API key tidak lagi valid. Silakan masukkan key baru.");
+          }
+        } catch {
+          setValidationResult({ valid: false, error: "Gagal memvalidasi API key" });
+          toast.error("Gagal memvalidasi API key");
+        } finally {
+          setValidating(false);
+        }
+      }
     } else {
       // Turning off — if key was never saved/validated, reset everything
       if (!apiKeyOverride.saved) {
@@ -270,10 +292,14 @@ function ApiKeyTab() {
             Gunakan API key pribadi dari Google AI Studio
           </p>
         </div>
-        <Switch
-          checked={apiKeyOverride.enabled}
-          onCheckedChange={handleToggleEnabled}
-        />
+        <div className="flex items-center gap-2">
+          {validating && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+          <Switch
+            checked={apiKeyOverride.enabled}
+            onCheckedChange={handleToggleEnabled}
+            disabled={validating}
+          />
+        </div>
       </div>
 
       {apiKeyOverride.enabled && (

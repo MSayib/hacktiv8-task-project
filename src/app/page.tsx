@@ -22,6 +22,7 @@ export default function Home() {
   const modelId = useSettingsStore((s) => s.modelId);
   const parameters = useSettingsStore((s) => s.parameters);
   const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
+  const featureToggles = useSettingsStore((s) => s.featureToggles);
 
   // Always show welcome screen on initial page load
   useEffect(() => {
@@ -70,6 +71,14 @@ export default function Home() {
 
         if (apiKeyOverride.enabled && apiKeyOverride.saved && apiKeyOverride.key) {
           body.customApiKey = apiKeyOverride.key;
+        }
+
+        // Send explicit feature toggles for custom models, or override default behavior
+        if (featureToggles.thinking || featureToggles.search) {
+          body.features = {
+            thinking: featureToggles.thinking,
+            search: featureToggles.search,
+          };
         }
 
         const res = await fetch("/api/chat", {
@@ -165,7 +174,7 @@ export default function Home() {
         setIsStreaming(false);
       }
     },
-    [updateMessage, setIsStreaming, modelId, parameters, apiKeyOverride]
+    [updateMessage, setIsStreaming, modelId, parameters, apiKeyOverride, featureToggles]
   );
 
   // Generate AI title for new conversations

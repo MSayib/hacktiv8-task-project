@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Settings, ModelParameters, ApiKeyOverride, DiscoveredModel } from "@/types/settings";
+import type { Settings, ModelParameters, ApiKeyOverride, DiscoveredModel, FeatureToggles } from "@/types/settings";
 import { DEFAULT_MODEL_ID } from "@/lib/constants";
 
 const DEFAULT_PARAMETERS: ModelParameters = {
@@ -16,6 +16,11 @@ const DEFAULT_API_KEY_OVERRIDE: ApiKeyOverride = {
   saved: false,
 };
 
+const DEFAULT_FEATURE_TOGGLES: FeatureToggles = {
+  thinking: false,
+  search: false,
+};
+
 interface SettingsState extends Settings {
   setModelId: (id: string) => void;
   setParameters: (params: Partial<ModelParameters>) => void;
@@ -23,6 +28,7 @@ interface SettingsState extends Settings {
   setLocale: (locale: "id" | "en") => void;
   resetParameters: () => void;
   setCustomModels: (models: DiscoveredModel[]) => void;
+  setFeatureToggles: (toggles: Partial<FeatureToggles>) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -33,8 +39,9 @@ export const useSettingsStore = create<SettingsState>()(
       apiKeyOverride: DEFAULT_API_KEY_OVERRIDE,
       locale: "id",
       customModels: [],
+      featureToggles: DEFAULT_FEATURE_TOGGLES,
 
-      setModelId: (id) => set({ modelId: id }),
+      setModelId: (id) => set({ modelId: id, featureToggles: DEFAULT_FEATURE_TOGGLES }),
 
       setParameters: (params) =>
         set((state) => ({
@@ -51,6 +58,11 @@ export const useSettingsStore = create<SettingsState>()(
       resetParameters: () => set({ parameters: DEFAULT_PARAMETERS }),
 
       setCustomModels: (models) => set({ customModels: models }),
+
+      setFeatureToggles: (toggles) =>
+        set((state) => ({
+          featureToggles: { ...state.featureToggles, ...toggles },
+        })),
     }),
     {
       name: "kodingbuddy-settings",
