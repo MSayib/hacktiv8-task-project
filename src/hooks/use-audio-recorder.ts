@@ -24,6 +24,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const mimeTypeRef = useRef<string>("audio/webm");
 
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -40,6 +41,13 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     }
   }, []);
 
+  const startTimer = useCallback(() => {
+    clearTimer();
+    timerRef.current = setInterval(() => {
+      setDuration((d) => d + 1);
+    }, 1000);
+  }, [clearTimer]);
+
   const cleanupAudioContext = useCallback(() => {
     if (audioContextRef.current && audioContextRef.current.state !== "closed") {
       audioContextRef.current.close().catch(() => {});
@@ -47,6 +55,21 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     audioContextRef.current = null;
     analyserRef.current = null;
     setAnalyserNode(null);
+  }, []);
+
+  const stopStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const revokeUrl = useCallback((url: string | null) => {
+    if (url) URL.revokeObjectURL(url);
+  }, []);
+
+  // Build a playable blob from all collected chunks
+  const buildBlobFromChunks = useCallback(() => {
+    if (chunksRef.current.length === 0) return null;
+    return new Blob(chunksRef.current, { type: mimeTypeRef.current });
   }, []);
 
   const startRecording = useCallback(async () => {
@@ -71,23 +94,19 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
           ? "audio/ogg;codecs=opus"
           : "audio/webm";
 
+      mimeTypeRef.current = mimeType;
+
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
       };
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((t) => t.stop());
-        cleanupAudioContext();
-      };
-
-      recorder.start(100);
+      recorder.start();
       setIsRecording(true);
       setIsPaused(false);
       setDuration(0);
@@ -95,63 +114,115 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       setAudioUrl(null);
       setError(null);
 
-      timerRef.current = setInterval(() => {
-        setDuration((d) => d + 1);
-      }, 1000);
+      startTimer();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Microphone access denied"
       );
     }
-  }, [cleanupAudioContext]);
+  }, [startTimer]);
 
   const stopRecording = useCallback(() => {
     clearTimer();
-    if (mediaRecorderRef.current?.state !== "inactive") {
-      mediaRecorderRef.current?.stop();
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setIsRecording(false);
+      setIsPaused(false);
+      return;
     }
+
+    // Replace onstop to build the final blob
+    recorder.onstop = () => {
+      const blob = buildBlobFromChunks();
+      if (blob && blob.size > 0) {
+        setAudioBlob(blob);
+        setAudioUrl((prev) => {
+          revokeUrl(prev);
+          return URL.createObjectURL(blob);
+        });
+      }
+      stopStream();
+      cleanupAudioContext();
+    };
+
+    recorder.stop();
     setIsRecording(false);
     setIsPaused(false);
-  }, [clearTimer]);
+  }, [clearTimer, buildBlobFromChunks, stopStream, cleanupAudioContext, revokeUrl]);
 
   const pauseRecording = useCallback(() => {
     clearTimer();
-    mediaRecorderRef.current?.pause();
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+
+    // Request current data to flush chunks, then pause
+    recorder.requestData();
+    recorder.pause();
     setIsPaused(true);
-  }, [clearTimer]);
+
+    // Build temp blob for playback after a short delay for ondataavailable to fire
+    setTimeout(() => {
+      const blob = buildBlobFromChunks();
+      if (blob && blob.size > 0) {
+        setAudioBlob(blob);
+        setAudioUrl((prev) => {
+          revokeUrl(prev);
+          return URL.createObjectURL(blob);
+        });
+      }
+    }, 150);
+  }, [clearTimer, buildBlobFromChunks, revokeUrl]);
 
   const resumeRecording = useCallback(() => {
-    mediaRecorderRef.current?.resume();
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state !== "paused") return;
+
+    // Clear the preview blob/url so UI switches back to recording view
+    setAudioBlob(null);
+    setAudioUrl((prev) => {
+      revokeUrl(prev);
+      return null;
+    });
+
+    recorder.resume();
     setIsPaused(false);
-    timerRef.current = setInterval(() => {
-      setDuration((d) => d + 1);
-    }, 1000);
-  }, []);
+    startTimer();
+  }, [startTimer, revokeUrl]);
 
   const discardRecording = useCallback(() => {
     clearTimer();
-    if (mediaRecorderRef.current?.state !== "inactive") {
-      mediaRecorderRef.current?.stop();
+    const recorder = mediaRecorderRef.current;
+    if (recorder) {
+      // Prevent onstop from creating a blob
+      recorder.onstop = null;
+      recorder.ondataavailable = null;
+      if (recorder.state !== "inactive") {
+        recorder.stop();
+      }
     }
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    mediaRecorderRef.current = null;
+    chunksRef.current = [];
+    stopStream();
     cleanupAudioContext();
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl((prev) => {
+      revokeUrl(prev);
+      return null;
+    });
     setIsRecording(false);
     setIsPaused(false);
     setDuration(0);
     setAudioBlob(null);
-    setAudioUrl(null);
-  }, [audioUrl, clearTimer, cleanupAudioContext]);
+  }, [clearTimer, cleanupAudioContext, stopStream, revokeUrl]);
 
   useEffect(() => {
     return () => {
       clearTimer();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      stopStream();
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close().catch(() => {});
       }
     };
-  }, [clearTimer]);
+  }, [clearTimer, stopStream]);
 
   return {
     isRecording,

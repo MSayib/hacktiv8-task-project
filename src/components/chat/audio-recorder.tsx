@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Pause, Play, Trash2, Send } from "lucide-react";
+import { Square, Pause, Play, Trash2, Send, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
@@ -44,9 +44,16 @@ export function AudioRecorder({
 
   // Audio playback state
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackRafRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [isSending, setIsSending] = useState(false);
+
+  // Derived states for clarity
+  const isActivelyRecording = isRecording && !isPaused;
+  const isStopped = !isRecording && !!audioBlob;
+  const showPlayback = (isPaused && !!audioUrl) || isStopped;
 
   // Auto-start recording when component mounts
   useEffect(() => {
@@ -63,8 +70,8 @@ export function AudioRecorder({
 
   // Waveform animation via AnalyserNode
   useEffect(() => {
-    if (!analyserNode || !isRecording) {
-      if (!isRecording) setBars(new Array(BAR_COUNT).fill(4));
+    if (!analyserNode || !isActivelyRecording) {
+      if (!isActivelyRecording) setBars(new Array(BAR_COUNT).fill(4));
       return;
     }
 
@@ -72,12 +79,10 @@ export function AudioRecorder({
 
     const animate = () => {
       analyserNode.getByteFrequencyData(dataArray);
-      // Sample evenly across the frequency range
       const step = Math.floor(dataArray.length / BAR_COUNT);
       const newBars: number[] = [];
       for (let i = 0; i < BAR_COUNT; i++) {
         const value = dataArray[i * step] ?? 0;
-        // Map 0-255 to 4-32 (min height to max height in px)
         newBars.push(Math.max(4, (value / 255) * 32));
       }
       setBars(newBars);
@@ -86,53 +91,78 @@ export function AudioRecorder({
 
     animFrameRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [analyserNode, isRecording]);
+  }, [analyserNode, isActivelyRecording]);
 
-  // Pause waveform: freeze the bars when paused
+  // Audio element setup for playback (both paused preview and stopped)
   useEffect(() => {
-    if (isPaused) {
-      cancelAnimationFrame(animFrameRef.current);
+    if (!audioUrl || !showPlayback) return;
+
+    const audio = new Audio();
+    audioRef.current = audio;
+
+    const onDurationResolved = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setAudioDuration(audio.duration);
+      }
+    };
+
+    audio.addEventListener("loadedmetadata", () => {
+      if (isFinite(audio.duration) && audio.duration > 0) {
+        setAudioDuration(audio.duration);
+      } else {
+        // Webm blobs often report Infinity duration initially
+        setAudioDuration(duration);
+        audio.currentTime = 1e10;
+      }
+    });
+
+    audio.addEventListener("durationchange", onDurationResolved);
+
+    audio.addEventListener("seeked", () => {
+      if (audio.currentTime > 1e9) {
+        onDurationResolved();
+        audio.currentTime = 0;
+      }
+    });
+
+    audio.addEventListener("ended", () => {
+      setIsPlaying(false);
+      setPlaybackTime(0);
+      cancelAnimationFrame(playbackRafRef.current);
+    });
+
+    audio.src = audioUrl;
+    audio.load();
+
+    return () => {
+      cancelAnimationFrame(playbackRafRef.current);
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      audioRef.current = null;
+      setIsPlaying(false);
+      setPlaybackTime(0);
+    };
+  }, [audioUrl, showPlayback, duration]);
+
+  // Smooth playback tracking via requestAnimationFrame
+  useEffect(() => {
+    if (!isPlaying) {
+      cancelAnimationFrame(playbackRafRef.current);
+      return;
     }
-  }, [isPaused]);
 
-  // Audio element setup for playback
-  useEffect(() => {
-    if (audioUrl && !isRecording) {
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-
-      audio.addEventListener("loadedmetadata", () => {
-        // Handle infinity duration (common with webm blobs)
-        if (isFinite(audio.duration)) {
-          setAudioDuration(audio.duration);
-        } else {
-          setAudioDuration(duration);
-        }
-      });
-
-      audio.addEventListener("timeupdate", () => {
+    const tick = () => {
+      const audio = audioRef.current;
+      if (audio && audio.currentTime < 1e9) {
         setPlaybackTime(audio.currentTime);
-      });
+      }
+      playbackRafRef.current = requestAnimationFrame(tick);
+    };
 
-      audio.addEventListener("ended", () => {
-        setIsPlaying(false);
-        setPlaybackTime(0);
-      });
-
-      // For webm blobs that report Infinity duration, try to resolve
-      audio.addEventListener("durationchange", () => {
-        if (isFinite(audio.duration)) {
-          setAudioDuration(audio.duration);
-        }
-      });
-
-      return () => {
-        audio.pause();
-        audio.src = "";
-        audioRef.current = null;
-      };
-    }
-  }, [audioUrl, isRecording, duration]);
+    playbackRafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(playbackRafRef.current);
+  }, [isPlaying]);
 
   const togglePlayback = useCallback(() => {
     const audio = audioRef.current;
@@ -154,19 +184,32 @@ export function AudioRecorder({
     setPlaybackTime(time);
   }, []);
 
-  const formatDuration = (secs: number) => {
-    const m = Math.floor(secs / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = Math.floor(secs % 60)
-      .toString()
-      .padStart(2, "0");
+  const handleResume = useCallback(() => {
+    // Stop playback before resuming recording
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      setPlaybackTime(0);
+    }
+    resumeRecording();
+  }, [resumeRecording]);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = Math.floor(secs % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
 
   const handleSend = async () => {
-    if (!audioBlob) return;
+    if (!audioBlob || isSending) return;
+    setIsSending(true);
     try {
+      // If still in recording state (paused), stop first
+      if (isRecording) {
+        stopRecording();
+        // Wait a bit for the final blob to be built
+        await new Promise((r) => setTimeout(r, 200));
+      }
       const ext = audioBlob.type.includes("webm") ? "webm" : "ogg";
       const attachment = await blobToAttachment(
         audioBlob,
@@ -175,13 +218,15 @@ export function AudioRecorder({
       onRecordingComplete(attachment);
     } catch {
       toast.error(t("fileError"));
+    } finally {
+      setIsSending(false);
     }
   };
 
   const handleDiscard = () => {
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.src = "";
+      audioRef.current.removeAttribute("src");
     }
     discardRecording();
     onCancel();
@@ -197,8 +242,8 @@ export function AudioRecorder({
       >
         {/* Waveform / Playback area */}
         <div className="flex items-center gap-3">
-          {/* Recording indicator */}
-          {isRecording && (
+          {/* Active recording indicator (pulsing red dot) */}
+          {isActivelyRecording && (
             <motion.div
               animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
               transition={{ repeat: Infinity, duration: 1.2 }}
@@ -206,14 +251,13 @@ export function AudioRecorder({
             />
           )}
 
-          {/* Stopped indicator */}
-          {!isRecording && audioBlob && (
+          {/* Play/Pause button for playback (paused or stopped) */}
+          {showPlayback && (
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 shrink-0"
               onClick={togglePlayback}
-              title={isPlaying ? t("pauseRecording") : t("resumeRecording")}
             >
               {isPlaying ? (
                 <Pause className="h-4 w-4" />
@@ -223,25 +267,25 @@ export function AudioRecorder({
             </Button>
           )}
 
-          {/* Waveform bars (during recording) */}
-          {isRecording && (
+          {/* Waveform bars (during active recording) */}
+          {isActivelyRecording && (
             <div className="flex flex-1 items-center justify-center gap-[2px] h-10">
               {bars.map((height, i) => (
                 <motion.div
                   key={i}
                   className="w-[3px] rounded-full bg-red-500/80"
-                  animate={{ height: isPaused ? 4 : height }}
+                  animate={{ height }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 />
               ))}
             </div>
           )}
 
-          {/* Playback progress (after stop) */}
-          {!isRecording && audioBlob && (
+          {/* Playback progress bar (paused or stopped) */}
+          {showPlayback && (
             <div className="flex flex-1 items-center gap-2">
               <span className="font-mono text-xs text-muted-foreground min-w-[36px]">
-                {formatDuration(playbackTime)}
+                {formatTime(playbackTime)}
               </span>
               <input
                 type="range"
@@ -253,15 +297,15 @@ export function AudioRecorder({
                 className="audio-seek-bar flex-1 h-1.5 appearance-none rounded-full bg-muted cursor-pointer accent-primary"
               />
               <span className="font-mono text-xs text-muted-foreground min-w-[36px]">
-                {formatDuration(audioDuration || duration)}
+                {formatTime(audioDuration || duration)}
               </span>
             </div>
           )}
 
-          {/* Duration (during recording) */}
-          {isRecording && (
+          {/* Duration counter (during active recording) */}
+          {isActivelyRecording && (
             <span className="font-mono text-sm text-muted-foreground min-w-[48px] shrink-0">
-              {formatDuration(duration)}
+              {formatTime(duration)}
             </span>
           )}
         </div>
@@ -270,32 +314,28 @@ export function AudioRecorder({
         <div className="flex items-center justify-between">
           {/* Status text */}
           <div className="text-xs text-muted-foreground">
-            {isRecording && (
-              <span>{isPaused ? t("recordingPaused") : t("recording")}</span>
-            )}
-            {!isRecording && audioBlob && (
+            {isActivelyRecording && <span>{t("recording")}</span>}
+            {isPaused && <span>{t("recordingPaused")}</span>}
+            {isStopped && (
               <span className="text-muted-foreground/70">
-                {formatDuration(audioDuration || duration)}
+                {formatTime(audioDuration || duration)}
               </span>
             )}
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-1">
-            {isRecording && (
+            {/* Active recording: Pause + Stop */}
+            {isActivelyRecording && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={isPaused ? resumeRecording : pauseRecording}
-                  title={isPaused ? t("resumeRecording") : t("pauseRecording")}
+                  onClick={pauseRecording}
+                  title={t("pauseRecording")}
                 >
-                  {isPaused ? (
-                    <Play className="h-4 w-4" />
-                  ) : (
-                    <Pause className="h-4 w-4" />
-                  )}
+                  <Pause className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -308,17 +348,56 @@ export function AudioRecorder({
                 </Button>
               </>
             )}
-            {audioBlob && !isRecording && (
+
+            {/* Paused: Resume + Stop + Send */}
+            {isPaused && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleResume}
+                  title={t("resumeRecording")}
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={stopRecording}
+                  title={t("stopRecording")}
+                >
+                  <Square className="h-4 w-4" />
+                </Button>
+                {audioBlob && (
+                  <Button
+                    size="icon"
+                    className="h-9 w-9 gradient-primary text-white rounded-xl hover:opacity-90"
+                    onClick={handleSend}
+                    disabled={disabled || isSending}
+                    title={t("sendRecording")}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Stopped: Send */}
+            {isStopped && (
               <Button
                 size="icon"
                 className="h-9 w-9 gradient-primary text-white rounded-xl hover:opacity-90"
                 onClick={handleSend}
-                disabled={disabled}
+                disabled={disabled || isSending}
                 title={t("sendRecording")}
               >
                 <Send className="h-4 w-4" />
               </Button>
             )}
+
+            {/* Always show discard */}
             <Button
               variant="ghost"
               size="icon"

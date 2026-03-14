@@ -18,6 +18,7 @@ export default function Home() {
   const updateMessage = useChatStore((s) => s.updateMessage);
   const retryMessage = useChatStore((s) => s.retryMessage);
   const setIsStreaming = useChatStore((s) => s.setIsStreaming);
+  const renameConversation = useChatStore((s) => s.renameConversation);
   const modelId = useSettingsStore((s) => s.modelId);
   const parameters = useSettingsStore((s) => s.parameters);
   const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
@@ -168,9 +169,43 @@ export default function Home() {
     [updateMessage, setIsStreaming, modelId, parameters, apiKeyOverride]
   );
 
+  // Generate AI title for new conversations
+  const generateTitle = useCallback(
+    async (convId: string, userContent: string, botContent: string) => {
+      try {
+        const titleBody: Record<string, unknown> = {
+          userMessage: userContent,
+          assistantMessage: botContent,
+        };
+
+        if (apiKeyOverride.enabled && apiKeyOverride.key) {
+          titleBody.customApiKey = apiKeyOverride.key;
+          titleBody.provider = apiKeyOverride.provider;
+        }
+
+        const res = await fetch("/api/title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(titleBody),
+        });
+
+        if (res.ok) {
+          const { title } = await res.json();
+          if (title) {
+            renameConversation(convId, title);
+          }
+        }
+      } catch {
+        // Title generation failure is non-critical, silently ignore
+      }
+    },
+    [apiKeyOverride, renameConversation]
+  );
+
   const handleSend = useCallback(
     async (content: string, attachments?: Attachment[]) => {
       let convId = activeId;
+      const isNewConversation = !convId;
       if (!convId) {
         convId = createConversation(modelId);
       }
@@ -195,6 +230,15 @@ export default function Home() {
       });
 
       await streamResponse(convId, botMessageId);
+
+      // Generate AI title for new conversations after first exchange
+      if (isNewConversation) {
+        const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+        const botMsg = conv?.messages.find((m) => m.id === botMessageId);
+        if (botMsg?.content && !botMsg.content.startsWith("Error:")) {
+          generateTitle(convId, content || attachments?.[0]?.name || "", botMsg.content);
+        }
+      }
     },
     [
       activeId,
@@ -203,6 +247,7 @@ export default function Home() {
       setIsStreaming,
       modelId,
       streamResponse,
+      generateTitle,
     ]
   );
 

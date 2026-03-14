@@ -88,9 +88,11 @@ export async function POST(request: Request) {
 
       if (m.attachments) {
         for (const att of m.attachments) {
+          // Normalize mimeType: strip codec params (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+          const mimeType = att.mimeType.split(";")[0].trim();
           parts.push({
             inlineData: {
-              mimeType: att.mimeType,
+              mimeType,
               data: att.data,
             },
           });

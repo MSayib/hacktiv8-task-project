@@ -58,58 +58,68 @@ export function classifyAttachmentType(
   return "document";
 }
 
-export function fileToAttachment(file: File): Promise<Attachment> {
-  return new Promise((resolve, reject) => {
-    const type = classifyAttachmentType(file.type);
-    const limit = FILE_SIZE_LIMITS[type];
-    if (file.size > limit) {
-      reject(
-        new Error(
-          `File "${file.name}" exceeds ${formatFileSize(limit)} limit for ${type} files`
-        )
-      );
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const base64 = dataUrl.split(",")[1];
-      resolve({
-        id: crypto.randomUUID(),
-        name: file.name,
-        type,
-        mimeType: file.type,
-        size: file.size,
-        data: base64,
-        previewUrl: type === "image" ? URL.createObjectURL(file) : undefined,
-      });
-    };
-    reader.onerror = () => reject(new Error(`Failed to read "${file.name}"`));
-    reader.readAsDataURL(file);
+async function uploadViaMulter(
+  file: File | Blob,
+  name: string
+): Promise<{ mimeType: string; size: number; data: string }> {
+  const formData = new FormData();
+  const fileObj = file instanceof File ? file : new File([file], name, { type: file.type });
+  formData.append("files", fileObj);
+
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
   });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Upload failed" }));
+    throw new Error(err.error || `Upload failed (${res.status})`);
+  }
+
+  const result = await res.json();
+  if (!result.files || result.files.length === 0) {
+    throw new Error("No file returned from upload");
+  }
+
+  return result.files[0];
+}
+
+export async function fileToAttachment(file: File): Promise<Attachment> {
+  const type = classifyAttachmentType(file.type);
+  const limit = FILE_SIZE_LIMITS[type];
+  if (file.size > limit) {
+    throw new Error(
+      `File "${file.name}" exceeds ${formatFileSize(limit)} limit for ${type} files`
+    );
+  }
+
+  const uploaded = await uploadViaMulter(file, file.name);
+
+  return {
+    id: crypto.randomUUID(),
+    name: file.name,
+    type,
+    mimeType: uploaded.mimeType,
+    size: uploaded.size,
+    data: uploaded.data,
+    previewUrl: type === "image" ? URL.createObjectURL(file) : undefined,
+  };
 }
 
 export async function blobToAttachment(
   blob: Blob,
   name: string
 ): Promise<Attachment> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const base64 = dataUrl.split(",")[1];
-      resolve({
-        id: crypto.randomUUID(),
-        name,
-        type: "audio",
-        mimeType: blob.type || "audio/webm",
-        size: blob.size,
-        data: base64,
-      });
-    };
-    reader.onerror = () => reject(new Error("Failed to process recording"));
-    reader.readAsDataURL(blob);
-  });
+  const uploaded = await uploadViaMulter(blob, name);
+
+  return {
+    id: crypto.randomUUID(),
+    name,
+    type: "audio",
+    mimeType: uploaded.mimeType || blob.type || "audio/webm",
+    size: uploaded.size,
+    data: uploaded.data,
+  };
 }
 
 export function formatFileSize(bytes: number): string {

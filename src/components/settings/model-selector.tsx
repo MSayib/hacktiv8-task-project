@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, Info, Sparkles, Zap, Brain, Star } from "lucide-react";
+import { Check, Info, Zap, Brain, Star, ImageIcon, Music, FileText, Globe } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,18 +19,72 @@ import { AVAILABLE_MODELS, FREE_TIER_INFO } from "@/lib/constants";
 import { formatTokenCount } from "@/lib/models";
 import type { ModelDefinition } from "@/types/models";
 
-function FeatureIcon({ feature }: { feature: string }) {
-  switch (feature) {
-    case "thinking":
-    case "deep_think":
-      return <Brain className="h-3 w-3" />;
-    case "code":
-      return <Zap className="h-3 w-3" />;
-    case "search":
-      return <Sparkles className="h-3 w-3" />;
-    default:
-      return null;
+interface FeatureBadgeConfig {
+  icon: React.ReactNode;
+  label: string;
+  className: string;
+}
+
+function getFeatureBadges(features: string[]): FeatureBadgeConfig[] {
+  const badges: FeatureBadgeConfig[] = [];
+
+  for (const f of features) {
+    switch (f) {
+      case "thinking":
+        badges.push({
+          icon: <Brain className="h-3 w-3" />,
+          label: "Thinking",
+          className: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+        });
+        break;
+      case "deep_think":
+        badges.push({
+          icon: <Brain className="h-3 w-3" />,
+          label: "Deep Think",
+          className: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",
+        });
+        break;
+      case "code":
+        badges.push({
+          icon: <Zap className="h-3 w-3" />,
+          label: "Code",
+          className: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+        });
+        break;
+      case "search":
+        badges.push({
+          icon: <Globe className="h-3 w-3" />,
+          label: "Search",
+          className: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+        });
+        break;
+      case "multimodal":
+        badges.push(
+          {
+            icon: <ImageIcon className="h-3 w-3" />,
+            label: "Image",
+            className: "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800",
+          },
+          {
+            icon: <Music className="h-3 w-3" />,
+            label: "Audio",
+            className: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
+          },
+          {
+            icon: <FileText className="h-3 w-3" />,
+            label: "Document",
+            className: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+          }
+        );
+        break;
+      // Skip non-display features
+      case "structured_output":
+      case "thought_signatures":
+        break;
+    }
   }
+
+  return badges;
 }
 
 function ModelCard({
@@ -85,14 +139,14 @@ function ModelCard({
               {model.description}
             </p>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {model.features.slice(0, 4).map((f) => (
+              {getFeatureBadges(model.features).map((badge) => (
                 <Badge
-                  key={f}
+                  key={badge.label}
                   variant="outline"
-                  className="text-[10px] px-1 py-0 gap-0.5"
+                  className={`text-[10px] px-1.5 py-0 gap-0.5 border ${badge.className}`}
                 >
-                  <FeatureIcon feature={f} />
-                  {f}
+                  {badge.icon}
+                  {badge.label}
                 </Badge>
               ))}
             </div>
