@@ -403,35 +403,26 @@ export function ModelSelector() {
 
                 <Separator />
                 <div>
-                  <button
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setShowFreeTierInfo(!showFreeTierInfo)}
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                    {t("models.freeTierInfo")}
-                  </button>
-                  {showFreeTierInfo && (
-                    <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs space-y-2">
-                      <p>
-                        <strong>1.</strong> {FREE_TIER_INFO.dataUsage}
-                      </p>
-                      <p>
-                        <strong>2.</strong> {FREE_TIER_INFO.multimodal}
-                      </p>
-                      <p>
-                        <strong>3.</strong> {FREE_TIER_INFO.quotaReset}
-                      </p>
-                      <p>
-                        <strong>4.</strong> {FREE_TIER_INFO.preview}
-                      </p>
-                      <button
-                        className="mt-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                        onClick={() => setShowFreeTierInfo(false)}
-                      >
-                        {t("common.close")}
-                      </button>
-                    </div>
-                  )}
+                  <Dialog open={showFreeTierInfo} onOpenChange={setShowFreeTierInfo}>
+                    <button
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setShowFreeTierInfo(true)}
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                      {t("models.freeTierInfo")}
+                    </button>
+                    <DialogContent className="sm:max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle className="text-sm">{t("models.freeTierInfo")}</DialogTitle>
+                      </DialogHeader>
+                      <div className="text-xs space-y-3 text-muted-foreground">
+                        <p><strong className="text-foreground">1.</strong> {FREE_TIER_INFO.dataUsage}</p>
+                        <p><strong className="text-foreground">2.</strong> {FREE_TIER_INFO.multimodal}</p>
+                        <p><strong className="text-foreground">3.</strong> {FREE_TIER_INFO.quotaReset}</p>
+                        <p><strong className="text-foreground">4.</strong> {FREE_TIER_INFO.preview}</p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </>
             )}
