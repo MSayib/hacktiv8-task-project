@@ -20,9 +20,10 @@ import { WelcomeScreen } from "./welcome-screen";
 interface ChatInterfaceProps {
   onSend: (message: string, attachments?: Attachment[]) => void;
   onRetry?: (userMessageId: string) => void;
+  onStop?: () => void;
 }
 
-export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
+export function ChatInterface({ onSend, onRetry, onStop }: ChatInterfaceProps) {
   const activeConversation = useChatStore((s) => s.getActiveConversation());
   const isStreaming = useChatStore((s) => s.isStreaming);
   const modelId = useSettingsStore((s) => s.modelId);
@@ -116,7 +117,9 @@ export function ChatInterface({ onSend, onRetry }: ChatInterfaceProps) {
         <FeatureToggles />
         <ChatInput
           onSend={onSend}
+          onStop={onStop}
           disabled={isStreaming}
+          isStreaming={isStreaming}
           supportsMultimodal={supportsMultimodal}
           searchActive={searchActive}
         />

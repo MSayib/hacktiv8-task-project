@@ -351,13 +351,13 @@ export function ModelSelector() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>{t("models.selectModel")}</DialogTitle>
           <DialogDescription>{t("models.selectDescription")}</DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[50vh]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-2 pr-3">
             {hasCustomModels ? (
               <>
@@ -400,41 +400,43 @@ export function ModelSelector() {
                     showInfo={expandedModel === model.id}
                   />
                 ))}
+
+                <Separator />
+                <div>
+                  <button
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setShowFreeTierInfo(!showFreeTierInfo)}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    {t("models.freeTierInfo")}
+                  </button>
+                  {showFreeTierInfo && (
+                    <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs space-y-2">
+                      <p>
+                        <strong>1.</strong> {FREE_TIER_INFO.dataUsage}
+                      </p>
+                      <p>
+                        <strong>2.</strong> {FREE_TIER_INFO.multimodal}
+                      </p>
+                      <p>
+                        <strong>3.</strong> {FREE_TIER_INFO.quotaReset}
+                      </p>
+                      <p>
+                        <strong>4.</strong> {FREE_TIER_INFO.preview}
+                      </p>
+                      <button
+                        className="mt-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                        onClick={() => setShowFreeTierInfo(false)}
+                      >
+                        {t("common.close")}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
         </ScrollArea>
-
-        {!hasCustomModels && (
-          <>
-            <Separator />
-            <div>
-              <button
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setShowFreeTierInfo(!showFreeTierInfo)}
-              >
-                <Info className="h-3.5 w-3.5" />
-                {t("models.freeTierInfo")}
-              </button>
-              {showFreeTierInfo && (
-                <div className="mt-2 rounded-lg bg-muted/50 p-3 text-xs space-y-2">
-                  <p>
-                    <strong>1.</strong> {FREE_TIER_INFO.dataUsage}
-                  </p>
-                  <p>
-                    <strong>2.</strong> {FREE_TIER_INFO.multimodal}
-                  </p>
-                  <p>
-                    <strong>3.</strong> {FREE_TIER_INFO.quotaReset}
-                  </p>
-                  <p>
-                    <strong>4.</strong> {FREE_TIER_INFO.preview}
-                  </p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </DialogContent>
     </Dialog>
   );

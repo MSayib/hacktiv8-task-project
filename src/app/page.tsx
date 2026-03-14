@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/sidebar/sidebar";
 import { ChatInterface } from "@/components/chat/chat-interface";
@@ -23,6 +23,7 @@ export default function Home() {
   const parameters = useSettingsStore((s) => s.parameters);
   const apiKeyOverride = useSettingsStore((s) => s.apiKeyOverride);
   const featureToggles = useSettingsStore((s) => s.featureToggles);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Always show welcome screen on initial page load
   useEffect(() => {
@@ -81,10 +82,14 @@ export default function Home() {
           };
         }
 
+        const controller = new AbortController();
+        abortRef.current = controller;
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -162,15 +167,28 @@ export default function Home() {
           searchSources: searchSources.length > 0 ? searchSources : undefined,
         });
       } catch (error) {
-        updateMessage(convId, botMessageId, {
-          isStreaming: false,
-          isThinking: false,
-          content:
-            error instanceof Error
-              ? `Error: ${error.message}`
-              : "Terjadi kesalahan",
-        });
+        // Abort is intentional — finalize the message with what we have so far
+        if (error instanceof DOMException && error.name === "AbortError") {
+          const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
+          const botMsg = conv?.messages.find((m) => m.id === botMessageId);
+          updateMessage(convId, botMessageId, {
+            isStreaming: false,
+            isThinking: false,
+            isSearching: false,
+            content: botMsg?.content || "",
+          });
+        } else {
+          updateMessage(convId, botMessageId, {
+            isStreaming: false,
+            isThinking: false,
+            content:
+              error instanceof Error
+                ? `Error: ${error.message}`
+                : "Terjadi kesalahan",
+          });
+        }
       } finally {
+        abortRef.current = null;
         setIsStreaming(false);
       }
     },
@@ -271,13 +289,17 @@ export default function Home() {
     [activeId, retryMessage, setIsStreaming, streamResponse]
   );
 
+  const handleStop = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-hidden">
-          <ChatInterface onSend={handleSend} onRetry={handleRetry} />
+          <ChatInterface onSend={handleSend} onRetry={handleRetry} onStop={handleStop} />
         </main>
       </div>
       <ModelSelector />

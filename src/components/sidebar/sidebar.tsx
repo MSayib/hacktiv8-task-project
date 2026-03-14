@@ -200,17 +200,19 @@ export function Sidebar() {
               {t("exportAll")}
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-xs text-destructive"
-            onClick={() => {
-              if (confirm(t("deleteAllConfirm"))) deleteAll();
-            }}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {t("deleteAll")}
-          </Button>
+          {conversations.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-xs text-destructive"
+              onClick={() => {
+                if (confirm(t("deleteAllConfirm"))) deleteAll();
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t("deleteAll")}
+            </Button>
+          )}
         </div>
 
         <Separator />

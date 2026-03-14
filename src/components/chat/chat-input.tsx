@@ -9,7 +9,7 @@ import {
   type DragEvent,
 } from "react";
 import { useTranslations } from "next-intl";
-import { SendHorizonal, Paperclip, Mic, X, FileText, Music, ImageIcon } from "lucide-react";
+import { SendHorizonal, Paperclip, Mic, X, FileText, Music, ImageIcon, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,12 +29,14 @@ import { AudioRecorder } from "./audio-recorder";
 
 interface ChatInputProps {
   onSend: (message: string, attachments?: Attachment[]) => void;
+  onStop?: () => void;
   disabled?: boolean;
+  isStreaming?: boolean;
   supportsMultimodal?: boolean;
   searchActive?: boolean;
 }
 
-export function ChatInput({ onSend, disabled, supportsMultimodal, searchActive }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled, isStreaming, supportsMultimodal, searchActive }: ChatInputProps) {
   const t = useTranslations("chat");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -289,14 +291,25 @@ export function ChatInput({ onSend, disabled, supportsMultimodal, searchActive }
             </>
           )}
         </div>
-        <Button
-          size="icon"
-          onClick={handleSend}
-          disabled={disabled}
-          className="h-9 w-9 shrink-0 rounded-xl gradient-primary text-white hover:opacity-90"
-        >
-          <SendHorizonal className="h-4 w-4" />
-        </Button>
+        {isStreaming ? (
+          <Button
+            size="icon"
+            onClick={onStop}
+            className="h-9 w-9 shrink-0 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            title="Stop"
+          >
+            <Square className="h-3.5 w-3.5 fill-current" />
+          </Button>
+        ) : (
+          <Button
+            size="icon"
+            onClick={handleSend}
+            disabled={disabled}
+            className="h-9 w-9 shrink-0 rounded-xl gradient-primary text-white hover:opacity-90"
+          >
+            <SendHorizonal className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Hidden file inputs per category */}
