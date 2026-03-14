@@ -411,7 +411,7 @@ export function ModelSelector() {
                       <Info className="h-3.5 w-3.5" />
                       {t("models.freeTierInfo")}
                     </button>
-                    <DialogContent className="sm:max-w-sm" overlayClassName="bg-black/40 backdrop-blur-sm">
+                    <DialogContent className="sm:max-w-sm" overlayClassName="bg-black/50 supports-backdrop-filter:backdrop-blur-md">
                       <DialogHeader>
                         <DialogTitle className="text-sm">{t("models.freeTierInfo")}</DialogTitle>
                       </DialogHeader>
